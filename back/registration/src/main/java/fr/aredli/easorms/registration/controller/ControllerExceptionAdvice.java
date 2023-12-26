@@ -37,7 +37,7 @@ public class ControllerExceptionAdvice {
 		return new ResponseEntity<>(errorHandler, HttpStatus.BAD_REQUEST);
 	}
 	
-/*	@ExceptionHandler(Exception.class)
+	@ExceptionHandler(Exception.class)
 	public ResponseEntity<ErrorHandler> handleException(Exception exception) {
 		ErrorHandler errorHandler = ErrorHandler.builder()
 				.timestamp(new Date())
@@ -48,5 +48,5 @@ public class ControllerExceptionAdvice {
 				.build();
 		
 		return new ResponseEntity<>(errorHandler, HttpStatus.BAD_REQUEST);
-	}*/
+	}
 }

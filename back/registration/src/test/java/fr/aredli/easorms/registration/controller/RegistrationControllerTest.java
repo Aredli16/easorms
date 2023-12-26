@@ -348,4 +348,17 @@ public class RegistrationControllerTest {
 		assertEquals(1, pageResponse.getBody().getRegistrations().size());
 		assertEquals(secondRegistration.getId(), pageResponse.getBody().getRegistrations().getFirst().getId());
 	}
+	
+	@Test
+	void shouldThrowAndExceptionIfNoAValidStatus() {
+		ResponseEntity<ErrorHandler> response = restTemplate.getForEntity("/registration/status/INVALID", ErrorHandler.class);
+		
+		assertEquals(400, response.getStatusCode().value());
+		assertNotNull(response.getBody());
+		assertNotNull(response.getBody().getTimestamp());
+		assertEquals("No enum constant fr.aredli.easorms.registration.entity.Registration.RegistrationStatus.INVALID", response.getBody().getMessage());
+		assertEquals("The request is invalid.", response.getBody().getDetails());
+		assertEquals(400, response.getBody().getStatusCode());
+		assertEquals("BAD_REQUEST", response.getBody().getStatus().name());
+	}
 }
