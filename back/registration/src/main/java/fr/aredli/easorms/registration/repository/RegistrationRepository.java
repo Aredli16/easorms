@@ -1,9 +1,13 @@
 package fr.aredli.easorms.registration.repository;
 
 import fr.aredli.easorms.registration.entity.Registration;
+import fr.aredli.easorms.registration.entity.Registration.RegistrationStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
 public interface RegistrationRepository extends JpaRepository<Registration, String> {
+	Page<Registration> findByStatus(RegistrationStatus status, Pageable pageable);
 }

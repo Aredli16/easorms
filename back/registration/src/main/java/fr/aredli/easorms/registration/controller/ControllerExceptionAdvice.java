@@ -24,16 +24,29 @@ public class ControllerExceptionAdvice {
 		return new ResponseEntity<>(errorHandler, HttpStatus.NOT_FOUND);
 	}
 	
-	@ExceptionHandler(Exception.class)
+	@ExceptionHandler(IllegalArgumentException.class)
+	public ResponseEntity<ErrorHandler> handleIllegalArgumentException(IllegalArgumentException exception) {
+		ErrorHandler errorHandler = ErrorHandler.builder()
+				.timestamp(new Date())
+				.message(exception.getMessage())
+				.details("The request is invalid.")
+				.status(HttpStatus.BAD_REQUEST)
+				.statusCode(HttpStatus.BAD_REQUEST.value())
+				.build();
+		
+		return new ResponseEntity<>(errorHandler, HttpStatus.BAD_REQUEST);
+	}
+	
+/*	@ExceptionHandler(Exception.class)
 	public ResponseEntity<ErrorHandler> handleException(Exception exception) {
 		ErrorHandler errorHandler = ErrorHandler.builder()
 				.timestamp(new Date())
 				.message(exception.getMessage())
-				.details("An unexpected error occurred.")
-				.status(HttpStatus.INTERNAL_SERVER_ERROR)
-				.statusCode(HttpStatus.INTERNAL_SERVER_ERROR.value())
+				.details("Resource not found.")
+				.status(HttpStatus.BAD_REQUEST)
+				.statusCode(HttpStatus.BAD_REQUEST.value())
 				.build();
 		
-		return new ResponseEntity<>(errorHandler, HttpStatus.INTERNAL_SERVER_ERROR);
-	}
+		return new ResponseEntity<>(errorHandler, HttpStatus.BAD_REQUEST);
+	}*/
 }

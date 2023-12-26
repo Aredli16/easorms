@@ -54,4 +54,25 @@ public class RegistrationController {
 		
 		return ResponseEntity.noContent().build();
 	}
+	
+	@PostMapping("/{id}/approve")
+	public ResponseEntity<RegistrationResponse> approve(@PathVariable String id) {
+		return ResponseEntity.ok(registrationService.approve(id));
+	}
+	
+	@PostMapping("/{id}/reject")
+	public ResponseEntity<RegistrationResponse> reject(@PathVariable String id) {
+		return ResponseEntity.ok(registrationService.reject(id));
+	}
+	
+	@GetMapping("/status/{status}")
+	public ResponseEntity<RegistrationPageResponse> getByStatus(
+			@PathVariable String status,
+			@RequestParam(required = false, defaultValue = "0") int page,
+			@RequestParam(required = false, defaultValue = "20") int size,
+			@RequestParam(required = false, defaultValue = "updatedAt") String sortBy,
+			@RequestParam(required = false, defaultValue = "desc") String sortDirection
+	) {
+		return ResponseEntity.ok(registrationService.findByStatus(status, page, size, sortBy, sortDirection));
+	}
 }

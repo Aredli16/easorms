@@ -1,5 +1,6 @@
 package fr.aredli.easorms.registration.dto;
 
+import fr.aredli.easorms.registration.entity.Registration.RegistrationStatus;
 import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -25,6 +26,7 @@ public abstract class RegistrationDTO {
 		private String createdBy;
 		private Date createdAt;
 		private Date updatedAt;
+		private RegistrationStatus status;
 	}
 	
 	@Data

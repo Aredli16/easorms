@@ -27,4 +27,17 @@ public class Registration {
 	private Date createdAt;
 	@UpdateTimestamp
 	private Date updatedAt;
+	@Enumerated(EnumType.STRING)
+	private RegistrationStatus status;
+	
+	@PrePersist
+	public void prePersist() {
+		this.status = RegistrationStatus.PENDING;
+	}
+	
+	public enum RegistrationStatus {
+		PENDING,
+		APPROVED,
+		REJECTED
+	}
 }

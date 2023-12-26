@@ -5,6 +5,7 @@ import fr.aredli.easorms.registration.dto.RegistrationDTO.RegistrationRequest.Re
 import fr.aredli.easorms.registration.dto.RegistrationDTO.RegistrationRequest.RegistrationUpdateRequest;
 import fr.aredli.easorms.registration.dto.RegistrationDTO.RegistrationResponse;
 import fr.aredli.easorms.registration.entity.Registration;
+import fr.aredli.easorms.registration.entity.Registration.RegistrationStatus;
 import fr.aredli.easorms.registration.mapper.RegistrationMapper;
 import fr.aredli.easorms.registration.repository.RegistrationRepository;
 import lombok.RequiredArgsConstructor;
@@ -52,5 +53,31 @@ public class RegistrationService {
 	
 	public void deleteAll() {
 		repository.deleteAll();
+	}
+	
+	public RegistrationResponse approve(String id) {
+		Registration entity = repository.findById(id).orElseThrow();
+		entity.setStatus(RegistrationStatus.APPROVED);
+		
+		return RegistrationMapper.mapEntityToDTO(repository.save(entity));
+	}
+	
+	public RegistrationResponse reject(String id) {
+		Registration entity = repository.findById(id).orElseThrow();
+		entity.setStatus(RegistrationStatus.REJECTED);
+		
+		return RegistrationMapper.mapEntityToDTO(repository.save(entity));
+	}
+	
+	public RegistrationPageResponse findByStatus(String status, int page, int size, String sortBy, String sortDirection) {
+		Page<Registration> registrations = repository.findByStatus(RegistrationStatus.valueOf(status), PageRequest.of(page, size).withSort(Sort.by(Direction.fromString(sortDirection), sortBy)));
+		
+		return RegistrationPageResponse
+				.builder()
+				.page(registrations.getNumber())
+				.totalPages(registrations.getTotalPages())
+				.totalElements(registrations.getTotalElements())
+				.registrations(repository.findByStatus(RegistrationStatus.valueOf(status), PageRequest.of(page, size).withSort(Sort.by(Direction.fromString(sortDirection), sortBy))).stream().map(RegistrationMapper::mapEntityToDTO).toList())
+				.build();
 	}
 }

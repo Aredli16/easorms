@@ -6,6 +6,7 @@ import fr.aredli.easorms.registration.dto.RegistrationDTO.RegistrationRequest.Re
 import fr.aredli.easorms.registration.dto.RegistrationDTO.RegistrationRequest.RegistrationUpdateRequest;
 import fr.aredli.easorms.registration.dto.RegistrationDTO.RegistrationResponse;
 import fr.aredli.easorms.registration.entity.Registration;
+import fr.aredli.easorms.registration.entity.Registration.RegistrationStatus;
 import fr.aredli.easorms.registration.exception.ErrorHandler;
 import fr.aredli.easorms.registration.repository.RegistrationRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -239,5 +240,112 @@ public class RegistrationControllerTest {
 		
 		assertEquals(204, registrationResponse.getStatusCode().value());
 		assertEquals(0, registrationRepository.count());
+	}
+	
+	@Test
+	void shouldCreateAPendingRegistrationWhenCreateANewRegistration() {
+		RegistrationCreateRequest registrationCreateRequest = new RegistrationCreateRequest();
+		
+		ResponseEntity<RegistrationResponse> registrationResponse = restTemplate.postForEntity("/registration", registrationCreateRequest, RegistrationResponse.class);
+		
+		assertEquals(201, registrationResponse.getStatusCode().value());
+		assertNotNull(registrationResponse.getBody());
+		assertEquals(RegistrationStatus.PENDING, registrationResponse.getBody().getStatus());
+	}
+	
+	@Test
+	void shouldNotUpdateRegistrationStatusWhenUpdate() {
+		Registration registration = createRegistration();
+		registration.setStatus(RegistrationStatus.REJECTED);
+		registrationRepository.save(registration);
+		
+		RegistrationUpdateRequest registrationUpdateRequest = new RegistrationUpdateRequest();
+		
+		ResponseEntity<RegistrationResponse> registrationResponse = restTemplate.exchange("/registration/" + registration.getId(), HttpMethod.PUT, new HttpEntity<>(registrationUpdateRequest), RegistrationResponse.class);
+		
+		assertEquals(200, registrationResponse.getStatusCode().value());
+		assertNotNull(registrationResponse.getBody());
+		assertEquals(RegistrationStatus.REJECTED, registrationResponse.getBody().getStatus());
+		
+		Registration updatedRegistration = registrationRepository.findById(registrationResponse.getBody().getId()).orElseThrow();
+		
+		assertEquals(RegistrationStatus.REJECTED, updatedRegistration.getStatus());
+	}
+	
+	@Test
+	void shouldApproveExistingRegistration() {
+		Registration registration = createRegistration();
+		
+		ResponseEntity<RegistrationResponse> registrationResponse = restTemplate.postForEntity("/registration/" + registration.getId() + "/approve", null, RegistrationResponse.class);
+		
+		assertEquals(200, registrationResponse.getStatusCode().value());
+		assertNotNull(registrationResponse.getBody());
+		assertEquals(RegistrationStatus.APPROVED, registrationResponse.getBody().getStatus());
+		
+		Registration updatedRegistration = registrationRepository.findById(registrationResponse.getBody().getId()).orElseThrow();
+		
+		assertEquals(RegistrationStatus.APPROVED, updatedRegistration.getStatus());
+	}
+	
+	@Test
+	void shouldRejectExistingRegistration() {
+		Registration registration = createRegistration();
+		
+		ResponseEntity<RegistrationResponse> registrationResponse = restTemplate.postForEntity("/registration/" + registration.getId() + "/reject", null, RegistrationResponse.class);
+		
+		assertEquals(200, registrationResponse.getStatusCode().value());
+		assertNotNull(registrationResponse.getBody());
+		assertEquals(RegistrationStatus.REJECTED, registrationResponse.getBody().getStatus());
+		
+		Registration updatedRegistration = registrationRepository.findById(registrationResponse.getBody().getId()).orElseThrow();
+		
+		assertEquals(RegistrationStatus.REJECTED, updatedRegistration.getStatus());
+	}
+	
+	@Test
+	void shouldGetPageOfAllRegistrationByStatus() {
+		Registration firstRegistration = createRegistration();
+		Registration secondRegistration = createRegistration();
+		Registration thirdRegistration = createRegistration();
+		
+		ResponseEntity<RegistrationPageResponse> pageResponse = restTemplate.getForEntity("/registration/status/" + RegistrationStatus.PENDING, RegistrationPageResponse.class);
+		
+		assertEquals(200, pageResponse.getStatusCode().value());
+		assertNotNull(pageResponse.getBody());
+		assertEquals(3, pageResponse.getBody().getTotalElements());
+		assertEquals(1, pageResponse.getBody().getTotalPages());
+		
+		restTemplate.postForEntity("/registration/" + firstRegistration.getId() + "/approve", null, RegistrationResponse.class);
+		restTemplate.postForEntity("/registration/" + secondRegistration.getId() + "/reject", null, RegistrationResponse.class);
+		
+		pageResponse = restTemplate.getForEntity("/registration/status/" + RegistrationStatus.PENDING, RegistrationPageResponse.class);
+		
+		assertEquals(200, pageResponse.getStatusCode().value());
+		assertNotNull(pageResponse.getBody());
+		assertEquals(1, pageResponse.getBody().getTotalElements());
+		assertEquals(1, pageResponse.getBody().getTotalPages());
+		assertNotNull(pageResponse.getBody().getRegistrations());
+		assertEquals(1, pageResponse.getBody().getRegistrations().size());
+		assertEquals(thirdRegistration.getId(), pageResponse.getBody().getRegistrations().getFirst().getId());
+		
+		pageResponse = restTemplate.getForEntity("/registration/status/" + RegistrationStatus.APPROVED, RegistrationPageResponse.class);
+		
+		assertEquals(200, pageResponse.getStatusCode().value());
+		assertNotNull(pageResponse.getBody());
+		assertEquals(1, pageResponse.getBody().getTotalElements());
+		assertEquals(1, pageResponse.getBody().getTotalPages());
+		assertNotNull(pageResponse.getBody().getRegistrations());
+		assertEquals(1, pageResponse.getBody().getRegistrations().size());
+		assertEquals(firstRegistration.getId(), pageResponse.getBody().getRegistrations().getFirst().getId());
+		
+		pageResponse = restTemplate.getForEntity("/registration/status/" + RegistrationStatus.REJECTED, RegistrationPageResponse.class);
+		
+		assertEquals(200, pageResponse.getStatusCode().value());
+		assertNotNull(pageResponse.getBody());
+		assertEquals(1, pageResponse.getBody().getTotalElements());
+		assertEquals(1, pageResponse.getBody().getTotalPages());
+		assertNotNull(pageResponse.getBody().getRegistrations());
+		assertEquals(1, pageResponse.getBody().getRegistrations().size());
+		assertEquals(secondRegistration.getId(), pageResponse.getBody().getRegistrations().getFirst().getId());
 	}
 }
