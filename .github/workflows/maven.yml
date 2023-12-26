@@ -24,7 +24,7 @@ jobs:
     - name: Docker Login
       uses: docker/login-action@v3.0.0
       with:
-        username: Aredli
+        username: aredli
         password: ${{ secrets.DOCKERHUBPASSWORD }}
           
     - name: Build with Maven
