@@ -28,16 +28,16 @@ public class Registration {
 	@UpdateTimestamp
 	private Date updatedAt;
 	@Enumerated(EnumType.STRING)
-	private RegistrationStatus status;
+	private Status status;
 	@ManyToOne
 	private SchoolYear schoolYear;
 	
 	@PrePersist
 	public void prePersist() {
-		this.status = RegistrationStatus.PENDING;
+		this.status = Status.PENDING;
 	}
 	
-	public enum RegistrationStatus {
+	public enum Status {
 		PENDING,
 		APPROVED,
 		REJECTED,

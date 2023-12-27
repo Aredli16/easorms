@@ -6,7 +6,7 @@ import fr.aredli.easorms.registration.dto.RegistrationDTO.RegistrationRequest.Re
 import fr.aredli.easorms.registration.dto.RegistrationDTO.RegistrationRequest.RegistrationUpdateRequest;
 import fr.aredli.easorms.registration.dto.RegistrationDTO.RegistrationResponse;
 import fr.aredli.easorms.registration.entity.Registration;
-import fr.aredli.easorms.registration.entity.Registration.RegistrationStatus;
+import fr.aredli.easorms.registration.entity.Registration.Status;
 import fr.aredli.easorms.registration.entity.SchoolYear;
 import fr.aredli.easorms.registration.exception.ErrorHandler;
 import fr.aredli.easorms.registration.repository.RegistrationRepository;
@@ -249,13 +249,13 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 		
 		assertEquals(201, registrationResponse.getStatusCode().value());
 		assertNotNull(registrationResponse.getBody());
-		assertEquals(RegistrationStatus.PENDING, registrationResponse.getBody().getStatus());
+		assertEquals(Status.PENDING, registrationResponse.getBody().getStatus());
 	}
 	
 	@Test
 	void shouldNotUpdateRegistrationStatusWhenUpdate() {
 		Registration registration = createRegistration();
-		registration.setStatus(RegistrationStatus.REJECTED);
+		registration.setStatus(Status.REJECTED);
 		registrationRepository.save(registration);
 		
 		RegistrationUpdateRequest registrationUpdateRequest = new RegistrationUpdateRequest();
@@ -264,11 +264,11 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 		
 		assertEquals(200, registrationResponse.getStatusCode().value());
 		assertNotNull(registrationResponse.getBody());
-		assertEquals(RegistrationStatus.REJECTED, registrationResponse.getBody().getStatus());
+		assertEquals(Status.REJECTED, registrationResponse.getBody().getStatus());
 		
 		Registration updatedRegistration = registrationRepository.findById(registrationResponse.getBody().getId()).orElseThrow();
 		
-		assertEquals(RegistrationStatus.REJECTED, updatedRegistration.getStatus());
+		assertEquals(Status.REJECTED, updatedRegistration.getStatus());
 	}
 	
 	@Test
@@ -279,11 +279,11 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 		
 		assertEquals(200, registrationResponse.getStatusCode().value());
 		assertNotNull(registrationResponse.getBody());
-		assertEquals(RegistrationStatus.APPROVED, registrationResponse.getBody().getStatus());
+		assertEquals(Status.APPROVED, registrationResponse.getBody().getStatus());
 		
 		Registration updatedRegistration = registrationRepository.findById(registrationResponse.getBody().getId()).orElseThrow();
 		
-		assertEquals(RegistrationStatus.APPROVED, updatedRegistration.getStatus());
+		assertEquals(Status.APPROVED, updatedRegistration.getStatus());
 	}
 	
 	@Test
@@ -294,11 +294,11 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 		
 		assertEquals(200, registrationResponse.getStatusCode().value());
 		assertNotNull(registrationResponse.getBody());
-		assertEquals(RegistrationStatus.REJECTED, registrationResponse.getBody().getStatus());
+		assertEquals(Status.REJECTED, registrationResponse.getBody().getStatus());
 		
 		Registration updatedRegistration = registrationRepository.findById(registrationResponse.getBody().getId()).orElseThrow();
 		
-		assertEquals(RegistrationStatus.REJECTED, updatedRegistration.getStatus());
+		assertEquals(Status.REJECTED, updatedRegistration.getStatus());
 	}
 	
 	@Test
@@ -307,7 +307,7 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 		Registration secondRegistration = createRegistration();
 		Registration thirdRegistration = createRegistration();
 		
-		ResponseEntity<RegistrationPageResponse> pageResponse = restTemplate.getForEntity("/registration/status/" + RegistrationStatus.PENDING, RegistrationPageResponse.class);
+		ResponseEntity<RegistrationPageResponse> pageResponse = restTemplate.getForEntity("/registration/status/" + Status.PENDING, RegistrationPageResponse.class);
 		
 		assertEquals(200, pageResponse.getStatusCode().value());
 		assertNotNull(pageResponse.getBody());
@@ -317,7 +317,7 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 		restTemplate.postForEntity("/registration/" + firstRegistration.getId() + "/approve", null, RegistrationResponse.class);
 		restTemplate.postForEntity("/registration/" + secondRegistration.getId() + "/reject", null, RegistrationResponse.class);
 		
-		pageResponse = restTemplate.getForEntity("/registration/status/" + RegistrationStatus.PENDING, RegistrationPageResponse.class);
+		pageResponse = restTemplate.getForEntity("/registration/status/" + Status.PENDING, RegistrationPageResponse.class);
 		
 		assertEquals(200, pageResponse.getStatusCode().value());
 		assertNotNull(pageResponse.getBody());
@@ -327,7 +327,7 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 		assertEquals(1, pageResponse.getBody().getRegistrations().size());
 		assertEquals(thirdRegistration.getId(), pageResponse.getBody().getRegistrations().getFirst().getId());
 		
-		pageResponse = restTemplate.getForEntity("/registration/status/" + RegistrationStatus.APPROVED, RegistrationPageResponse.class);
+		pageResponse = restTemplate.getForEntity("/registration/status/" + Status.APPROVED, RegistrationPageResponse.class);
 		
 		assertEquals(200, pageResponse.getStatusCode().value());
 		assertNotNull(pageResponse.getBody());
@@ -337,7 +337,7 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 		assertEquals(1, pageResponse.getBody().getRegistrations().size());
 		assertEquals(firstRegistration.getId(), pageResponse.getBody().getRegistrations().getFirst().getId());
 		
-		pageResponse = restTemplate.getForEntity("/registration/status/" + RegistrationStatus.REJECTED, RegistrationPageResponse.class);
+		pageResponse = restTemplate.getForEntity("/registration/status/" + Status.REJECTED, RegistrationPageResponse.class);
 		
 		assertEquals(200, pageResponse.getStatusCode().value());
 		assertNotNull(pageResponse.getBody());
@@ -355,7 +355,7 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 		assertEquals(400, response.getStatusCode().value());
 		assertNotNull(response.getBody());
 		assertNotNull(response.getBody().getTimestamp());
-		assertEquals("No enum constant fr.aredli.easorms.registration.entity.Registration.RegistrationStatus.INVALID", response.getBody().getMessage());
+		assertEquals("No enum constant fr.aredli.easorms.registration.entity.Registration.Status.INVALID", response.getBody().getMessage());
 		assertEquals("The request is invalid.", response.getBody().getDetails());
 		assertEquals(400, response.getBody().getStatusCode());
 		assertEquals("BAD_REQUEST", response.getBody().getStatus().name());
