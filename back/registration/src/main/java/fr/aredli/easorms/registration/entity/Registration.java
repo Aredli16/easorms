@@ -29,6 +29,8 @@ public class Registration {
 	private Date updatedAt;
 	@Enumerated(EnumType.STRING)
 	private RegistrationStatus status;
+	@ManyToOne
+	private SchoolYear schoolYear;
 	
 	@PrePersist
 	public void prePersist() {
@@ -38,6 +40,7 @@ public class Registration {
 	public enum RegistrationStatus {
 		PENDING,
 		APPROVED,
-		REJECTED
+		REJECTED,
+		ARCHIVED
 	}
 }

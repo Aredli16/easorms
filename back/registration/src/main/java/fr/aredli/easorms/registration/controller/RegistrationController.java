@@ -75,4 +75,14 @@ public class RegistrationController {
 	) {
 		return ResponseEntity.ok(registrationService.findByStatus(status, page, size, sortBy, sortDirection));
 	}
+	
+	@GetMapping("school-year/current")
+	public ResponseEntity<RegistrationPageResponse> getByCurrentSchoolYear(
+			@RequestParam(required = false, defaultValue = "0") int page,
+			@RequestParam(required = false, defaultValue = "20") int size,
+			@RequestParam(required = false, defaultValue = "updatedAt") String sortBy,
+			@RequestParam(required = false, defaultValue = "desc") String sortDirection
+	) {
+		return ResponseEntity.ok(registrationService.findByCurrentSchoolYear(page, size, sortBy, sortDirection));
+	}
 }

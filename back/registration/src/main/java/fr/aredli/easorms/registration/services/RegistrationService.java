@@ -6,7 +6,9 @@ import fr.aredli.easorms.registration.dto.RegistrationDTO.RegistrationRequest.Re
 import fr.aredli.easorms.registration.dto.RegistrationDTO.RegistrationResponse;
 import fr.aredli.easorms.registration.entity.Registration;
 import fr.aredli.easorms.registration.entity.Registration.RegistrationStatus;
+import fr.aredli.easorms.registration.entity.SchoolYear;
 import fr.aredli.easorms.registration.mapper.RegistrationMapper;
+import fr.aredli.easorms.registration.mapper.SchoolYearMapper;
 import fr.aredli.easorms.registration.repository.RegistrationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class RegistrationService {
 	private final RegistrationRepository repository;
+	private final SchoolYearService schoolYearService;
 	
 	public RegistrationPageResponse findAll(int page, int size, String sortBy, String sortDirection) {
 		Page<Registration> registrations = repository.findAll(PageRequest.of(page, size).withSort(Sort.by(Direction.fromString(sortDirection), sortBy)));
@@ -36,13 +39,24 @@ public class RegistrationService {
 		return RegistrationMapper.mapEntityToDTO(repository.findById(id).orElseThrow());
 	}
 	
-	public RegistrationResponse create(RegistrationCreateRequest registration) {
-		return RegistrationMapper.mapEntityToDTO(repository.save(RegistrationMapper.mapDTOToEntity(registration)));
+	public RegistrationResponse create(RegistrationCreateRequest request) {
+		SchoolYear schoolYear;
+		
+		try {
+			schoolYear = SchoolYearMapper.mapDTOToEntity(schoolYearService.findCurrentSchoolYear());
+		} catch (Exception e) {
+			throw new IllegalArgumentException("No current school year found");
+		}
+		
+		Registration registration = RegistrationMapper.mapDTOToEntity(request);
+		registration.setSchoolYear(schoolYear);
+		
+		return RegistrationMapper.mapEntityToDTO(repository.save(registration));
 	}
 	
-	public RegistrationResponse update(String id, RegistrationUpdateRequest registration) {
+	public RegistrationResponse update(String id, RegistrationUpdateRequest request) {
 		Registration entity = repository.findById(id).orElseThrow();
-		RegistrationMapper.mapDTOToEntity(entity, registration);
+		RegistrationMapper.mapDTOToEntity(entity, request);
 		
 		return RegistrationMapper.mapEntityToDTO(repository.save(entity));
 	}
@@ -78,6 +92,19 @@ public class RegistrationService {
 				.totalPages(registrations.getTotalPages())
 				.totalElements(registrations.getTotalElements())
 				.registrations(repository.findByStatus(RegistrationStatus.valueOf(status), PageRequest.of(page, size).withSort(Sort.by(Direction.fromString(sortDirection), sortBy))).stream().map(RegistrationMapper::mapEntityToDTO).toList())
+				.build();
+	}
+	
+	public RegistrationPageResponse findByCurrentSchoolYear(int page, int size, String sortBy, String sortDirection) {
+		SchoolYear schoolYear = SchoolYearMapper.mapDTOToEntity(schoolYearService.findCurrentSchoolYear());
+		Page<Registration> registrations = repository.findBySchoolYear(schoolYear, PageRequest.of(page, size).withSort(Sort.by(Direction.fromString(sortDirection), sortBy)));
+		
+		return RegistrationPageResponse
+				.builder()
+				.page(registrations.getNumber())
+				.totalPages(registrations.getTotalPages())
+				.totalElements(registrations.getTotalElements())
+				.registrations(repository.findBySchoolYear(schoolYear, PageRequest.of(page, size).withSort(Sort.by(Direction.fromString(sortDirection), sortBy))).stream().map(RegistrationMapper::mapEntityToDTO).toList())
 				.build();
 	}
 }

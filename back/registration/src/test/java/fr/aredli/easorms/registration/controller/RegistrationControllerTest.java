@@ -7,49 +7,27 @@ import fr.aredli.easorms.registration.dto.RegistrationDTO.RegistrationRequest.Re
 import fr.aredli.easorms.registration.dto.RegistrationDTO.RegistrationResponse;
 import fr.aredli.easorms.registration.entity.Registration;
 import fr.aredli.easorms.registration.entity.Registration.RegistrationStatus;
+import fr.aredli.easorms.registration.entity.SchoolYear;
 import fr.aredli.easorms.registration.exception.ErrorHandler;
 import fr.aredli.easorms.registration.repository.RegistrationRepository;
+import fr.aredli.easorms.registration.repository.SchoolYearRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+
+import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@Testcontainers
-public class RegistrationControllerTest {
-	@Container
-	private static final PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>("postgres:latest");
-	
-	static {
-		postgreSQLContainer
-				.withDatabaseName("registration")
-				.withUsername("postgres")
-				.withPassword("postgres");
-	}
-	
-	@Autowired
-	private TestRestTemplate restTemplate;
+public class RegistrationControllerTest extends DatabaseIntegrationTest {
 	@Autowired
 	private RegistrationRepository registrationRepository;
-	
-	@DynamicPropertySource
-	static void postgresqlProperties(DynamicPropertyRegistry registry) {
-		registry.add("spring.datasource.url", postgreSQLContainer::getJdbcUrl);
-		registry.add("spring.datasource.password", postgreSQLContainer::getPassword);
-		registry.add("spring.datasource.username", postgreSQLContainer::getUsername);
-	}
+	@Autowired
+	private SchoolYearRepository schoolYearRepository;
 	
 	private Registration createRegistration() {
 		Faker faker = new Faker();
@@ -68,9 +46,26 @@ public class RegistrationControllerTest {
 		return registrationRepository.save(registration);
 	}
 	
+	private Registration createRegistration(SchoolYear schoolYear) {
+		Registration registration = createRegistration();
+		registration.setSchoolYear(schoolYear);
+		
+		return registrationRepository.save(registration);
+	}
+	
+	private SchoolYear createCurrentSchoolYear(int year) {
+		SchoolYear schoolYear = new SchoolYear();
+		schoolYear.setStartDate(LocalDate.of(year, 9, 1));
+		schoolYear.setEndDate(LocalDate.of(year + 1, 7, 6));
+		schoolYear.setCurrent(true);
+		
+		return schoolYearRepository.save(schoolYear);
+	}
+	
 	@AfterEach
 	void tearDown() {
 		registrationRepository.deleteAll();
+		schoolYearRepository.deleteAll();
 	}
 	
 	@Test
@@ -129,6 +124,8 @@ public class RegistrationControllerTest {
 	
 	@Test
 	void shouldCreateRegistration() {
+		createCurrentSchoolYear(2000);
+		
 		RegistrationCreateRequest registrationCreateRequest = new RegistrationCreateRequest();
 		Faker faker = new Faker();
 		
@@ -244,6 +241,8 @@ public class RegistrationControllerTest {
 	
 	@Test
 	void shouldCreateAPendingRegistrationWhenCreateANewRegistration() {
+		createCurrentSchoolYear(2000);
+		
 		RegistrationCreateRequest registrationCreateRequest = new RegistrationCreateRequest();
 		
 		ResponseEntity<RegistrationResponse> registrationResponse = restTemplate.postForEntity("/registration", registrationCreateRequest, RegistrationResponse.class);
@@ -357,6 +356,54 @@ public class RegistrationControllerTest {
 		assertNotNull(response.getBody());
 		assertNotNull(response.getBody().getTimestamp());
 		assertEquals("No enum constant fr.aredli.easorms.registration.entity.Registration.RegistrationStatus.INVALID", response.getBody().getMessage());
+		assertEquals("The request is invalid.", response.getBody().getDetails());
+		assertEquals(400, response.getBody().getStatusCode());
+		assertEquals("BAD_REQUEST", response.getBody().getStatus().name());
+	}
+	
+	@Test
+	void shouldGetRegistrationPageOfCurrentSchoolYear() {
+		SchoolYear schoolYear = createCurrentSchoolYear(2000);
+		Registration firstRegistration = createRegistration(schoolYear);
+		Registration secondRegistration = createRegistration(schoolYear);
+		
+		ResponseEntity<RegistrationPageResponse> pageResponse = restTemplate.getForEntity("/registration/school-year/current", RegistrationPageResponse.class);
+		
+		assertEquals(200, pageResponse.getStatusCode().value());
+		assertNotNull(pageResponse.getBody());
+		assertEquals(2, pageResponse.getBody().getTotalElements());
+		assertEquals(1, pageResponse.getBody().getTotalPages());
+		assertNotNull(pageResponse.getBody().getRegistrations());
+		assertEquals(2, pageResponse.getBody().getRegistrations().size());
+		assertEquals(secondRegistration.getId(), pageResponse.getBody().getRegistrations().getFirst().getId());
+		assertEquals(firstRegistration.getId(), pageResponse.getBody().getRegistrations().getLast().getId());
+		
+		schoolYear.setCurrent(false);
+		schoolYearRepository.save(schoolYear);
+		schoolYear = createCurrentSchoolYear(2002);
+		Registration thirdRegistration = createRegistration(schoolYear);
+		
+		pageResponse = restTemplate.getForEntity("/registration/school-year/current", RegistrationPageResponse.class);
+		
+		assertEquals(200, pageResponse.getStatusCode().value());
+		assertNotNull(pageResponse.getBody());
+		assertEquals(1, pageResponse.getBody().getTotalElements());
+		assertEquals(1, pageResponse.getBody().getTotalPages());
+		assertNotNull(pageResponse.getBody().getRegistrations());
+		assertEquals(1, pageResponse.getBody().getRegistrations().size());
+		assertEquals(thirdRegistration.getId(), pageResponse.getBody().getRegistrations().getFirst().getId());
+	}
+	
+	@Test
+	void shouldThrowExceptionWhenCreatingRegistrationWithoutCurrentSchoolYear() {
+		RegistrationCreateRequest registrationCreateRequest = new RegistrationCreateRequest();
+		
+		ResponseEntity<ErrorHandler> response = restTemplate.postForEntity("/registration", registrationCreateRequest, ErrorHandler.class);
+		
+		assertEquals(400, response.getStatusCode().value());
+		assertNotNull(response.getBody());
+		assertNotNull(response.getBody().getTimestamp());
+		assertEquals("No current school year found", response.getBody().getMessage());
 		assertEquals("The request is invalid.", response.getBody().getDetails());
 		assertEquals(400, response.getBody().getStatusCode());
 		assertEquals("BAD_REQUEST", response.getBody().getStatus().name());
