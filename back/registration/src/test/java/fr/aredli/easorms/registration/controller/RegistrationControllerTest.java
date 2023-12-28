@@ -1,14 +1,19 @@
 package fr.aredli.easorms.registration.controller;
 
 import com.github.javafaker.Faker;
+import fr.aredli.easorms.registration.dto.RegistrationCustomFieldDTO;
 import fr.aredli.easorms.registration.dto.RegistrationDTO.RegistrationPageResponse;
 import fr.aredli.easorms.registration.dto.RegistrationDTO.RegistrationRequest.RegistrationCreateRequest;
 import fr.aredli.easorms.registration.dto.RegistrationDTO.RegistrationRequest.RegistrationUpdateRequest;
 import fr.aredli.easorms.registration.dto.RegistrationDTO.RegistrationResponse;
+import fr.aredli.easorms.registration.entity.CustomField;
+import fr.aredli.easorms.registration.entity.CustomField.Type;
 import fr.aredli.easorms.registration.entity.Registration;
 import fr.aredli.easorms.registration.entity.Registration.Status;
+import fr.aredli.easorms.registration.entity.RegistrationCustomField;
 import fr.aredli.easorms.registration.entity.SchoolYear;
 import fr.aredli.easorms.registration.exception.ErrorHandler;
+import fr.aredli.easorms.registration.repository.CustomFieldRepository;
 import fr.aredli.easorms.registration.repository.RegistrationRepository;
 import fr.aredli.easorms.registration.repository.SchoolYearRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -19,6 +24,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -28,6 +35,8 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 	private RegistrationRepository registrationRepository;
 	@Autowired
 	private SchoolYearRepository schoolYearRepository;
+	@Autowired
+	private CustomFieldRepository customFieldRepository;
 	
 	private Registration createRegistration() {
 		Faker faker = new Faker();
@@ -62,10 +71,19 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 		return schoolYearRepository.save(schoolYear);
 	}
 	
+	private CustomField createCustomField(String name, Type type) {
+		CustomField customField = new CustomField();
+		customField.setName(name);
+		customField.setType(type);
+		
+		return customFieldRepository.save(customField);
+	}
+	
 	@AfterEach
 	void tearDown() {
 		registrationRepository.deleteAll();
 		schoolYearRepository.deleteAll();
+		customFieldRepository.deleteAll();
 	}
 	
 	@Test
@@ -404,6 +422,248 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 		assertNotNull(response.getBody());
 		assertNotNull(response.getBody().getTimestamp());
 		assertEquals("No current school year found", response.getBody().getMessage());
+		assertEquals("The request is invalid.", response.getBody().getDetails());
+		assertEquals(400, response.getBody().getStatusCode());
+		assertEquals("BAD_REQUEST", response.getBody().getStatus().name());
+	}
+	
+	@Test
+	void shouldCreateRegistrationWithCustomField() {
+		createCurrentSchoolYear(2000);
+		createCustomField("customField", Type.TEXT);
+		createCustomField("customField2", Type.BOOLEAN);
+		
+		
+		List<RegistrationCustomFieldDTO> customFieldDTOS = new ArrayList<>();
+		RegistrationCustomFieldDTO customFieldDTO = new RegistrationCustomFieldDTO();
+		customFieldDTO.setName("customField");
+		customFieldDTO.setValue("customFieldValue");
+		customFieldDTOS.add(customFieldDTO);
+		customFieldDTO = new RegistrationCustomFieldDTO();
+		customFieldDTO.setName("customField2");
+		customFieldDTO.setValue("true");
+		customFieldDTOS.add(customFieldDTO);
+		
+		RegistrationCreateRequest registrationCreateRequest = new RegistrationCreateRequest();
+		registrationCreateRequest.setCustomFields(customFieldDTOS);
+		
+		ResponseEntity<RegistrationResponse> registrationResponse = restTemplate.postForEntity("/registration", registrationCreateRequest, RegistrationResponse.class);
+		
+		assertEquals(201, registrationResponse.getStatusCode().value());
+		assertNotNull(registrationResponse.getBody());
+		assertNotNull(registrationResponse.getBody().getId());
+		assertEquals(registrationCreateRequest.getCustomFields().getFirst().getName(), registrationResponse.getBody().getCustomFields().getFirst().getName());
+		assertEquals(registrationCreateRequest.getCustomFields().getFirst().getValue(), registrationResponse.getBody().getCustomFields().getFirst().getValue());
+		assertEquals(registrationCreateRequest.getCustomFields().getLast().getName(), registrationResponse.getBody().getCustomFields().getLast().getName());
+		assertEquals(registrationCreateRequest.getCustomFields().getLast().getValue(), registrationResponse.getBody().getCustomFields().getLast().getValue());
+	}
+	
+	@Test
+	void shouldThrowErrorIfAllCustomFieldAreNotFill() {
+		createCurrentSchoolYear(2000);
+		createCustomField("customField", Type.TEXT);
+		createCustomField("customField2", Type.BOOLEAN);
+		
+		List<RegistrationCustomFieldDTO> customFieldDTOS = new ArrayList<>();
+		RegistrationCustomFieldDTO customFieldDTO = new RegistrationCustomFieldDTO();
+		customFieldDTO.setName("customField");
+		customFieldDTO.setValue("customFieldValue");
+		customFieldDTOS.add(customFieldDTO);
+		
+		RegistrationCreateRequest registrationCreateRequest = new RegistrationCreateRequest();
+		registrationCreateRequest.setCustomFields(customFieldDTOS);
+		
+		ResponseEntity<ErrorHandler> response = restTemplate.postForEntity("/registration", registrationCreateRequest, ErrorHandler.class);
+		
+		assertEquals(400, response.getStatusCode().value());
+		assertNotNull(response.getBody());
+		assertNotNull(response.getBody().getTimestamp());
+		assertEquals("Not all custom fields are present", response.getBody().getMessage());
+		assertEquals("The request is invalid.", response.getBody().getDetails());
+		assertEquals(400, response.getBody().getStatusCode());
+		assertEquals("BAD_REQUEST", response.getBody().getStatus().name());
+	}
+	
+	@Test
+	void shouldThrowErrorIfCustomFieldValueDontMatchWithType() {
+		createCurrentSchoolYear(2000);
+		createCustomField("customField", Type.TEXT);
+		createCustomField("customField2", Type.BOOLEAN);
+		
+		List<RegistrationCustomFieldDTO> customFieldDTOS = new ArrayList<>();
+		RegistrationCustomFieldDTO customFieldDTO = new RegistrationCustomFieldDTO();
+		customFieldDTO.setName("customField");
+		customFieldDTO.setValue("customFieldValue");
+		customFieldDTOS.add(customFieldDTO);
+		customFieldDTO = new RegistrationCustomFieldDTO();
+		customFieldDTO.setName("customField2");
+		customFieldDTO.setValue("customFieldValue");
+		customFieldDTOS.add(customFieldDTO);
+		
+		RegistrationCreateRequest registrationCreateRequest = new RegistrationCreateRequest();
+		registrationCreateRequest.setCustomFields(customFieldDTOS);
+		
+		ResponseEntity<ErrorHandler> response = restTemplate.postForEntity("/registration", registrationCreateRequest, ErrorHandler.class);
+		
+		assertEquals(400, response.getStatusCode().value());
+		assertNotNull(response.getBody());
+		assertNotNull(response.getBody().getTimestamp());
+		assertEquals("Custom field customField2 value customFieldValue is not valid", response.getBody().getMessage());
+		assertEquals("The request is invalid.", response.getBody().getDetails());
+		assertEquals(400, response.getBody().getStatusCode());
+		assertEquals("BAD_REQUEST", response.getBody().getStatus().name());
+	}
+	
+	@Test
+	void shouldThrowErrorIfCustomFieldIsNotFound() {
+		createCurrentSchoolYear(2000);
+		createCustomField("customField", Type.TEXT);
+		createCustomField("customField2", Type.BOOLEAN);
+		
+		List<RegistrationCustomFieldDTO> customFieldDTOS = new ArrayList<>();
+		RegistrationCustomFieldDTO customFieldDTO = new RegistrationCustomFieldDTO();
+		customFieldDTO.setName("customField");
+		customFieldDTO.setValue("customFieldValue");
+		customFieldDTOS.add(customFieldDTO);
+		customFieldDTO = new RegistrationCustomFieldDTO();
+		customFieldDTO.setName("customField3");
+		customFieldDTO.setValue("customFieldValue");
+		customFieldDTOS.add(customFieldDTO);
+		
+		RegistrationCreateRequest registrationCreateRequest = new RegistrationCreateRequest();
+		registrationCreateRequest.setCustomFields(customFieldDTOS);
+		
+		ResponseEntity<ErrorHandler> response = restTemplate.postForEntity("/registration", registrationCreateRequest, ErrorHandler.class);
+		
+		assertEquals(400, response.getStatusCode().value());
+		assertNotNull(response.getBody());
+		assertNotNull(response.getBody().getTimestamp());
+		assertEquals("Custom field customField3 not found", response.getBody().getMessage());
+		assertEquals("The request is invalid.", response.getBody().getDetails());
+		assertEquals(400, response.getBody().getStatusCode());
+		assertEquals("BAD_REQUEST", response.getBody().getStatus().name());
+	}
+	
+	@Test
+	void shouldUpdateRegistrationCustomField() {
+		Registration registration = createRegistration();
+		CustomField firstCustomField = createCustomField("customField", Type.TEXT);
+		CustomField secondCustomField = createCustomField("customField2", Type.BOOLEAN);
+		
+		registration.setCustomFields(new ArrayList<>());
+		RegistrationCustomField registrationCustomField = new RegistrationCustomField();
+		registrationCustomField.setCustomField(firstCustomField);
+		registrationCustomField.setRegistration(registration);
+		registrationCustomField.setValue("customFieldValue");
+		registration.getCustomFields().add(registrationCustomField);
+		registrationCustomField = new RegistrationCustomField();
+		registrationCustomField.setCustomField(secondCustomField);
+		registrationCustomField.setRegistration(registration);
+		registrationCustomField.setValue("true");
+		registration.getCustomFields().add(registrationCustomField);
+		registration = registrationRepository.save(registration);
+		
+		List<RegistrationCustomFieldDTO> customFieldDTOS = new ArrayList<>();
+		RegistrationCustomFieldDTO customFieldDTO = new RegistrationCustomFieldDTO();
+		customFieldDTO.setName("customField");
+		customFieldDTO.setValue("updatedCustomFieldValue");
+		customFieldDTOS.add(customFieldDTO);
+		customFieldDTO = new RegistrationCustomFieldDTO();
+		customFieldDTO.setName("customField2");
+		customFieldDTO.setValue("false");
+		customFieldDTOS.add(customFieldDTO);
+		
+		RegistrationUpdateRequest registrationUpdateRequest = new RegistrationUpdateRequest();
+		registrationUpdateRequest.setCustomFields(customFieldDTOS);
+		
+		ResponseEntity<RegistrationResponse> registrationResponse = restTemplate.exchange("/registration/" + registration.getId(), HttpMethod.PUT, new HttpEntity<>(registrationUpdateRequest), RegistrationResponse.class);
+		
+		assertEquals(200, registrationResponse.getStatusCode().value());
+		assertNotNull(registrationResponse.getBody());
+		assertEquals(registration.getId(), registrationResponse.getBody().getId());
+		assertEquals(registrationUpdateRequest.getCustomFields().getFirst().getName(), registrationResponse.getBody().getCustomFields().getFirst().getName());
+		assertEquals(registrationUpdateRequest.getCustomFields().getFirst().getValue(), registrationResponse.getBody().getCustomFields().getFirst().getValue());
+		assertEquals(registrationUpdateRequest.getCustomFields().getLast().getName(), registrationResponse.getBody().getCustomFields().getLast().getName());
+		assertEquals(registrationUpdateRequest.getCustomFields().getLast().getValue(), registrationResponse.getBody().getCustomFields().getLast().getValue());
+	}
+	
+	@Test
+	void shouldThrowExceptionWhenUpdateHaveNoAllCustomField() {
+		Registration registration = createRegistration();
+		CustomField firstCustomField = createCustomField("customField", Type.TEXT);
+		CustomField secondCustomField = createCustomField("customField2", Type.BOOLEAN);
+		
+		registration.setCustomFields(new ArrayList<>());
+		RegistrationCustomField registrationCustomField = new RegistrationCustomField();
+		registrationCustomField.setCustomField(firstCustomField);
+		registrationCustomField.setRegistration(registration);
+		registrationCustomField.setValue("customFieldValue");
+		registration.getCustomFields().add(registrationCustomField);
+		registrationCustomField = new RegistrationCustomField();
+		registrationCustomField.setCustomField(secondCustomField);
+		registrationCustomField.setRegistration(registration);
+		registrationCustomField.setValue("true");
+		registration.getCustomFields().add(registrationCustomField);
+		registration = registrationRepository.save(registration);
+		
+		List<RegistrationCustomFieldDTO> customFieldDTOS = new ArrayList<>();
+		RegistrationCustomFieldDTO customFieldDTO = new RegistrationCustomFieldDTO();
+		customFieldDTO.setName("customField");
+		customFieldDTO.setValue("updatedCustomFieldValue");
+		customFieldDTOS.add(customFieldDTO);
+		
+		RegistrationUpdateRequest registrationUpdateRequest = new RegistrationUpdateRequest();
+		registrationUpdateRequest.setCustomFields(customFieldDTOS);
+		
+		ResponseEntity<ErrorHandler> response = restTemplate.exchange("/registration/" + registration.getId(), HttpMethod.PUT, new HttpEntity<>(registrationUpdateRequest), ErrorHandler.class);
+		
+		assertEquals(400, response.getStatusCode().value());
+		assertNotNull(response.getBody());
+		assertNotNull(response.getBody().getTimestamp());
+		assertEquals("Not all custom fields are present", response.getBody().getMessage());
+		assertEquals("The request is invalid.", response.getBody().getDetails());
+		assertEquals(400, response.getBody().getStatusCode());
+		assertEquals("BAD_REQUEST", response.getBody().getStatus().name());
+	}
+	
+	@Test
+	void shouldThrowErrorWhenUpdatedCustomFieldDontMatchWithCustomFieldType() {
+		Registration registration = createRegistration();
+		CustomField firstCustomField = createCustomField("customField", Type.TEXT);
+		CustomField secondCustomField = createCustomField("customField2", Type.BOOLEAN);
+		
+		registration.setCustomFields(new ArrayList<>());
+		RegistrationCustomField registrationCustomField = new RegistrationCustomField();
+		registrationCustomField.setCustomField(firstCustomField);
+		registrationCustomField.setRegistration(registration);
+		registrationCustomField.setValue("customFieldValue");
+		registration.getCustomFields().add(registrationCustomField);
+		registrationCustomField = new RegistrationCustomField();
+		registrationCustomField.setCustomField(secondCustomField);
+		registrationCustomField.setRegistration(registration);
+		registrationCustomField.setValue("true");
+		registration.getCustomFields().add(registrationCustomField);
+		registration = registrationRepository.save(registration);
+		
+		List<RegistrationCustomFieldDTO> customFieldDTOS = new ArrayList<>();
+		RegistrationCustomFieldDTO customFieldDTO = new RegistrationCustomFieldDTO();
+		customFieldDTO.setName("customField");
+		customFieldDTO.setValue("updatedCustomFieldValue");
+		customFieldDTOS.add(customFieldDTO);
+		customFieldDTO = new RegistrationCustomFieldDTO();
+		customFieldDTO.setName("customField2");
+		customFieldDTO.setValue("updatedCustomFieldValue");
+		customFieldDTOS.add(customFieldDTO);
+		
+		RegistrationUpdateRequest registrationUpdateRequest = new RegistrationUpdateRequest();
+		registrationUpdateRequest.setCustomFields(customFieldDTOS);
+		
+		ResponseEntity<ErrorHandler> response = restTemplate.exchange("/registration/" + registration.getId(), HttpMethod.PUT, new HttpEntity<>(registrationUpdateRequest), ErrorHandler.class);
+		
+		assertEquals(400, response.getStatusCode().value());
+		assertNotNull(response.getBody());
+		assertNotNull(response.getBody().getTimestamp());
+		assertEquals("Custom field customField2 value updatedCustomFieldValue is not valid", response.getBody().getMessage());
 		assertEquals("The request is invalid.", response.getBody().getDetails());
 		assertEquals(400, response.getBody().getStatusCode());
 		assertEquals("BAD_REQUEST", response.getBody().getStatus().name());

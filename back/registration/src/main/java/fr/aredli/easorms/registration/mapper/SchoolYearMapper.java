@@ -4,21 +4,24 @@ import fr.aredli.easorms.registration.dto.SchoolYearDTO.SchoolYearRequest.School
 import fr.aredli.easorms.registration.dto.SchoolYearDTO.SchoolYearRequest.SchoolYearUpdateRequest;
 import fr.aredli.easorms.registration.dto.SchoolYearDTO.SchoolYearResponse;
 import fr.aredli.easorms.registration.entity.SchoolYear;
+import org.modelmapper.ModelMapper;
 
 public class SchoolYearMapper {
+	private static final ModelMapper mapper = new ModelMapper();
+	
 	public static SchoolYearResponse mapEntityToDTO(SchoolYear entity) {
-		return Mapper.getMapper().map(entity, SchoolYearResponse.class);
+		return mapper.map(entity, SchoolYearResponse.class);
 	}
 	
 	public static SchoolYear mapDTOToEntity(SchoolYearCreateRequest dto) {
-		return Mapper.getMapper().map(dto, SchoolYear.class);
+		return mapper.map(dto, SchoolYear.class);
 	}
 	
 	public static void mapDTOToEntity(SchoolYear schoolYear, SchoolYearUpdateRequest request) {
-		Mapper.getMapper().map(request, schoolYear);
+		mapper.map(request, schoolYear);
 	}
 	
 	public static SchoolYear mapDTOToEntity(SchoolYearResponse dto) {
-		return Mapper.getMapper().map(dto, SchoolYear.class);
+		return mapper.map(dto, SchoolYear.class);
 	}
 }

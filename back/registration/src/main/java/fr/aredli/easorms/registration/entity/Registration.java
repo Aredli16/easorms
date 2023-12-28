@@ -6,6 +6,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.util.Date;
+import java.util.List;
 
 @Entity
 @Table
@@ -31,6 +32,8 @@ public class Registration {
 	private Status status;
 	@ManyToOne
 	private SchoolYear schoolYear;
+	@OneToMany(mappedBy = "registration", cascade = CascadeType.ALL)
+	private List<RegistrationCustomField> customFields;
 	
 	@PrePersist
 	public void prePersist() {

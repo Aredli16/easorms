@@ -19,6 +19,7 @@ public abstract class RegistrationDTO {
 	private String zipCode;
 	private String city;
 	private String country;
+	private List<RegistrationCustomFieldDTO> customFields;
 	
 	@Data
 	@EqualsAndHashCode(callSuper = true)

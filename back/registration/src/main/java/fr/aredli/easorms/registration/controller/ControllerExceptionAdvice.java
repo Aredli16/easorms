@@ -1,6 +1,7 @@
 package fr.aredli.easorms.registration.controller;
 
 import fr.aredli.easorms.registration.exception.ErrorHandler;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -10,6 +11,7 @@ import java.util.Date;
 import java.util.NoSuchElementException;
 
 @ControllerAdvice
+@Slf4j
 public class ControllerExceptionAdvice {
 	@ExceptionHandler(NoSuchElementException.class)
 	public ResponseEntity<ErrorHandler> handleNoSuchElementException(NoSuchElementException exception) {
@@ -47,6 +49,7 @@ public class ControllerExceptionAdvice {
 				.statusCode(HttpStatus.BAD_REQUEST.value())
 				.build();
 		
+		log.error(exception.getMessage(), exception);
 		return new ResponseEntity<>(errorHandler, HttpStatus.BAD_REQUEST);
 	}
 }
