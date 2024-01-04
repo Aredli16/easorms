@@ -9,7 +9,12 @@
 		<version>1.0.0-SNAPSHOT</version>
 	</parent>
 	
-	<artifactId>registration</artifactId>
+	<artifactId>services</artifactId>
+	<packaging>pom</packaging>
+	
+	<modules>
+		<module>registration</module>
+	</modules>
 	
 	<dependencies>
 		<dependency>
@@ -81,5 +86,4 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
-
 </project>

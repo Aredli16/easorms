@@ -19,7 +19,7 @@
 	<modules>
 		<module>discovery</module>
 		<module>gateway</module>
-		<module>registration</module>
+		<module>services</module>
 	</modules>
 	
 	<properties>
