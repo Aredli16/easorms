@@ -8,6 +8,7 @@ import fr.aredli.easorms.registration.services.RegistrationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -17,6 +18,7 @@ public class RegistrationController {
 	private final RegistrationService registrationService;
 	
 	@GetMapping
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<RegistrationPageResponse> getAll(
 			@RequestParam(required = false, defaultValue = "0") int page,
 			@RequestParam(required = false, defaultValue = "20") int size,
@@ -27,6 +29,7 @@ public class RegistrationController {
 	}
 	
 	@GetMapping("/{id}")
+	@PreAuthorize("hasRole('ADMIN') or @registrationService.isOwner(#id, authentication.name)")
 	public ResponseEntity<RegistrationResponse> getById(@PathVariable String id) {
 		return ResponseEntity.ok(registrationService.findById(id));
 	}
@@ -37,11 +40,13 @@ public class RegistrationController {
 	}
 	
 	@PutMapping("/{id}")
+	@PreAuthorize("hasRole('ADMIN') or @registrationService.isOwner(#id, authentication.name)")
 	public ResponseEntity<RegistrationResponse> update(@PathVariable String id, @RequestBody RegistrationUpdateRequest registration) {
 		return ResponseEntity.ok(registrationService.update(id, registration));
 	}
 	
 	@DeleteMapping("/{id}")
+	@PreAuthorize("hasRole('ADMIN') or @registrationService.isOwner(#id, authentication.name)")
 	public ResponseEntity<Void> delete(@PathVariable String id) {
 		registrationService.delete(id);
 		
@@ -49,6 +54,7 @@ public class RegistrationController {
 	}
 	
 	@DeleteMapping
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<Void> deleteAll() {
 		registrationService.deleteAll();
 		
@@ -56,16 +62,19 @@ public class RegistrationController {
 	}
 	
 	@PostMapping("/{id}/approve")
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<RegistrationResponse> approve(@PathVariable String id) {
 		return ResponseEntity.ok(registrationService.approve(id));
 	}
 	
 	@PostMapping("/{id}/reject")
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<RegistrationResponse> reject(@PathVariable String id) {
 		return ResponseEntity.ok(registrationService.reject(id));
 	}
 	
 	@GetMapping("/status/{status}")
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<RegistrationPageResponse> getByStatus(
 			@PathVariable String status,
 			@RequestParam(required = false, defaultValue = "0") int page,
@@ -76,7 +85,8 @@ public class RegistrationController {
 		return ResponseEntity.ok(registrationService.findByStatus(status, page, size, sortBy, sortDirection));
 	}
 	
-	@GetMapping("school-year/current")
+	@GetMapping("/school-year/current")
+	@PreAuthorize("hasRole('ADMIN')")
 	public ResponseEntity<RegistrationPageResponse> getByCurrentSchoolYear(
 			@RequestParam(required = false, defaultValue = "0") int page,
 			@RequestParam(required = false, defaultValue = "20") int size,

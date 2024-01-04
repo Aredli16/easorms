@@ -1,31 +1,22 @@
 package fr.aredli.easorms.registration.controller;
 
+import fr.aredli.easorms.registration.IntegrationTest;
 import fr.aredli.easorms.registration.entity.SchoolYear;
 import fr.aredli.easorms.registration.exception.ErrorHandler;
 import fr.aredli.easorms.registration.repository.SchoolYearRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDate;
 
+import static fr.aredli.easorms.registration.util.RegistrationUtilTest.createSchoolYear;
 import static org.junit.jupiter.api.Assertions.*;
 
-class SchoolYearControllerTest extends DatabaseIntegrationTest {
+class SchoolYearControllerTest extends IntegrationTest {
 	@Autowired
 	private SchoolYearRepository schoolYearRepository;
-	
-	private SchoolYear createSchoolYear(int year) {
-		SchoolYear schoolYear = new SchoolYear();
-		
-		schoolYear.setStartDate(LocalDate.of(year, 9, 1));
-		schoolYear.setEndDate(LocalDate.of(year + 1, 6, 30));
-		
-		return schoolYearRepository.save(schoolYear);
-	}
 	
 	@BeforeEach
 	void setUp() {
@@ -34,11 +25,11 @@ class SchoolYearControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldGetAllSchoolYear() {
-		SchoolYear firstSchoolYear = createSchoolYear(2000);
-		SchoolYear secondSchoolYear = createSchoolYear(2002);
-		SchoolYear thirdSchoolYear = createSchoolYear(2004);
+		SchoolYear firstSchoolYear = createSchoolYear(schoolYearRepository, 2000);
+		SchoolYear secondSchoolYear = createSchoolYear(schoolYearRepository, 2002);
+		SchoolYear thirdSchoolYear = createSchoolYear(schoolYearRepository, 2004);
 		
-		ResponseEntity<SchoolYear[]> response = restTemplate.getForEntity("/school-year", SchoolYear[].class);
+		ResponseEntity<SchoolYear[]> response = getWithAdminAuth("/school-year", SchoolYear[].class);
 		
 		assertEquals(200, response.getStatusCode().value());
 		assertNotNull(response.getBody());
@@ -50,9 +41,9 @@ class SchoolYearControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldGetTheCorrectRegistration() {
-		SchoolYear schoolYear = createSchoolYear(2000);
+		SchoolYear schoolYear = createSchoolYear(schoolYearRepository, 2000);
 		
-		ResponseEntity<SchoolYear> response = restTemplate.getForEntity("/school-year/" + schoolYear.getId(), SchoolYear.class);
+		ResponseEntity<SchoolYear> response = getWithAdminAuth("/school-year/" + schoolYear.getId(), SchoolYear.class);
 		
 		assertEquals(200, response.getStatusCode().value());
 		assertNotNull(response.getBody());
@@ -68,7 +59,7 @@ class SchoolYearControllerTest extends DatabaseIntegrationTest {
 		schoolYear.setStartDate(LocalDate.of(2000, 9, 1));
 		schoolYear.setEndDate(LocalDate.of(2001, 6, 30));
 		
-		ResponseEntity<SchoolYear> response = restTemplate.postForEntity("/school-year", schoolYear, SchoolYear.class);
+		ResponseEntity<SchoolYear> response = postWithAdminAuth("/school-year", schoolYear, SchoolYear.class);
 		
 		assertEquals(201, response.getStatusCode().value());
 		assertNotNull(response.getBody());
@@ -78,9 +69,9 @@ class SchoolYearControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldThrowExceptionIfSchoolYearAlreadyExists() {
-		SchoolYear schoolYear = createSchoolYear(2000);
+		SchoolYear schoolYear = createSchoolYear(schoolYearRepository, 2000);
 		
-		ResponseEntity<ErrorHandler> response = restTemplate.postForEntity("/school-year", schoolYear, ErrorHandler.class);
+		ResponseEntity<ErrorHandler> response = postWithAdminAuth("/school-year", schoolYear, ErrorHandler.class);
 		
 		assertEquals(400, response.getStatusCode().value());
 		assertNotNull(response.getBody());
@@ -94,7 +85,7 @@ class SchoolYearControllerTest extends DatabaseIntegrationTest {
 		schoolYear.setStartDate(LocalDate.of(2000, 9, 1));
 		schoolYear.setEndDate(LocalDate.of(1999, 6, 30));
 		
-		ResponseEntity<ErrorHandler> response = restTemplate.postForEntity("/school-year", schoolYear, ErrorHandler.class);
+		ResponseEntity<ErrorHandler> response = postWithAdminAuth("/school-year", schoolYear, ErrorHandler.class);
 		
 		assertEquals(400, response.getStatusCode().value());
 		assertNotNull(response.getBody());
@@ -103,12 +94,12 @@ class SchoolYearControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldUpdateSchoolYear() {
-		SchoolYear schoolYear = createSchoolYear(2000);
+		SchoolYear schoolYear = createSchoolYear(schoolYearRepository, 2000);
 		
 		schoolYear.setStartDate(LocalDate.of(2001, 9, 1));
 		schoolYear.setEndDate(LocalDate.of(2002, 6, 30));
 		
-		ResponseEntity<SchoolYear> response = restTemplate.exchange("/school-year/" + schoolYear.getId(), HttpMethod.PUT, new HttpEntity<>(schoolYear), SchoolYear.class);
+		ResponseEntity<SchoolYear> response = putWithAdminAuth("/school-year/" + schoolYear.getId(), schoolYear, SchoolYear.class);
 		
 		assertEquals(200, response.getStatusCode().value());
 		assertNotNull(response.getBody());
@@ -118,12 +109,12 @@ class SchoolYearControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldThrowExceptionIfSchoolYearAlreadyExistsWhenUpdating() {
-		SchoolYear firstSchoolYear = createSchoolYear(2000);
+		SchoolYear firstSchoolYear = createSchoolYear(schoolYearRepository, 2000);
 		
 		firstSchoolYear.setStartDate(LocalDate.of(2000, 9, 1));
 		firstSchoolYear.setEndDate(LocalDate.of(2001, 6, 30));
 		
-		ResponseEntity<ErrorHandler> response = restTemplate.exchange("/school-year/" + firstSchoolYear.getId(), HttpMethod.PUT, new HttpEntity<>(firstSchoolYear), ErrorHandler.class);
+		ResponseEntity<ErrorHandler> response = putWithAdminAuth("/school-year/" + firstSchoolYear.getId(), firstSchoolYear, ErrorHandler.class);
 		
 		assertEquals(400, response.getStatusCode().value());
 		assertNotNull(response.getBody());
@@ -132,12 +123,12 @@ class SchoolYearControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldThrowExceptionIfEndDateIsBeforeStartDateWhenUpdating() {
-		SchoolYear schoolYear = createSchoolYear(2000);
+		SchoolYear schoolYear = createSchoolYear(schoolYearRepository, 2000);
 		
 		schoolYear.setStartDate(LocalDate.of(2001, 9, 1));
 		schoolYear.setEndDate(LocalDate.of(2000, 6, 30));
 		
-		ResponseEntity<ErrorHandler> response = restTemplate.exchange("/school-year/" + schoolYear.getId(), HttpMethod.PUT, new HttpEntity<>(schoolYear), ErrorHandler.class);
+		ResponseEntity<ErrorHandler> response = putWithAdminAuth("/school-year/" + schoolYear.getId(), schoolYear, ErrorHandler.class);
 		
 		assertEquals(400, response.getStatusCode().value());
 		assertNotNull(response.getBody());
@@ -146,31 +137,31 @@ class SchoolYearControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldDeleteSchoolYear() {
-		SchoolYear schoolYear = createSchoolYear(2000);
+		SchoolYear schoolYear = createSchoolYear(schoolYearRepository, 2000);
 		
-		ResponseEntity<Void> response = restTemplate.exchange("/school-year/" + schoolYear.getId(), HttpMethod.DELETE, null, Void.class);
+		ResponseEntity<Void> response = deleteWithAdminAuth("/school-year/" + schoolYear.getId(), Void.class);
 		
 		assertEquals(204, response.getStatusCode().value());
 	}
 	
 	@Test
 	void shouldDeleteAllSchoolYears() {
-		createSchoolYear(2000);
-		createSchoolYear(2001);
-		createSchoolYear(2002);
+		createSchoolYear(schoolYearRepository, 2000);
+		createSchoolYear(schoolYearRepository, 2001);
+		createSchoolYear(schoolYearRepository, 2002);
 		
-		ResponseEntity<Void> response = restTemplate.exchange("/school-year", HttpMethod.DELETE, null, Void.class);
+		ResponseEntity<Void> response = deleteWithAdminAuth("/school-year", Void.class);
 		
 		assertEquals(204, response.getStatusCode().value());
 	}
 	
 	@Test
 	void shouldGetCurrentSchoolYear() {
-		SchoolYear schoolYear = createSchoolYear(2000);
+		SchoolYear schoolYear = createSchoolYear(schoolYearRepository, 2000);
 		schoolYear.setCurrent(true);
 		schoolYearRepository.save(schoolYear);
 		
-		ResponseEntity<SchoolYear> response = restTemplate.getForEntity("/school-year/current", SchoolYear.class);
+		ResponseEntity<SchoolYear> response = getWithAdminAuth("/school-year/current", SchoolYear.class);
 		
 		assertEquals(200, response.getStatusCode().value());
 		assertNotNull(response.getBody());
@@ -181,24 +172,24 @@ class SchoolYearControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldSetCurrentSchoolYear() {
-		SchoolYear schoolYear = createSchoolYear(2000);
+		SchoolYear schoolYear = createSchoolYear(schoolYearRepository, 2000);
 		
-		ResponseEntity<Void> response = restTemplate.postForEntity("/school-year/current/" + schoolYear.getId(), null, Void.class);
+		ResponseEntity<Void> response = postWithAdminAuth("/school-year/current/" + schoolYear.getId(), null, Void.class);
 		
 		assertEquals(204, response.getStatusCode().value());
 	}
 	
 	@Test
 	void shouldSwitchCorrectlyCurrentSchoolYear() {
-		SchoolYear firstSchoolYear = createSchoolYear(2000);
-		SchoolYear secondSchoolYear = createSchoolYear(2001);
+		SchoolYear firstSchoolYear = createSchoolYear(schoolYearRepository, 2000);
+		SchoolYear secondSchoolYear = createSchoolYear(schoolYearRepository, 2001);
 		
 		firstSchoolYear.setCurrent(true);
 		secondSchoolYear.setCurrent(false);
 		schoolYearRepository.save(firstSchoolYear);
 		schoolYearRepository.save(secondSchoolYear);
 		
-		ResponseEntity<Void> response = restTemplate.postForEntity("/school-year/current/" + secondSchoolYear.getId(), null, Void.class);
+		ResponseEntity<Void> response = postWithAdminAuth("/school-year/current/" + secondSchoolYear.getId(), null, Void.class);
 		
 		assertEquals(204, response.getStatusCode().value());
 		

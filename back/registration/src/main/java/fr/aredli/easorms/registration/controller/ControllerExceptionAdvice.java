@@ -4,6 +4,7 @@ import fr.aredli.easorms.registration.exception.ErrorHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
@@ -37,6 +38,19 @@ public class ControllerExceptionAdvice {
 				.build();
 		
 		return new ResponseEntity<>(errorHandler, HttpStatus.BAD_REQUEST);
+	}
+	
+	@ExceptionHandler(AccessDeniedException.class)
+	public ResponseEntity<ErrorHandler> handleAccessDeniedException(AccessDeniedException exception) {
+		ErrorHandler errorHandler = ErrorHandler.builder()
+				.timestamp(new Date())
+				.message(exception.getMessage())
+				.details("Access denied.")
+				.status(HttpStatus.FORBIDDEN)
+				.statusCode(HttpStatus.FORBIDDEN.value())
+				.build();
+		
+		return new ResponseEntity<>(errorHandler, HttpStatus.FORBIDDEN);
 	}
 	
 	@ExceptionHandler(Exception.class)

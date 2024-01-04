@@ -13,11 +13,13 @@ import fr.aredli.easorms.registration.mapper.CustomFieldMapper;
 import fr.aredli.easorms.registration.mapper.RegistrationMapper;
 import fr.aredli.easorms.registration.mapper.SchoolYearMapper;
 import fr.aredli.easorms.registration.repository.RegistrationRepository;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Direction;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -47,6 +49,13 @@ public class RegistrationService {
 	
 	public RegistrationResponse create(RegistrationCreateRequest request) {
 		Registration registration = RegistrationMapper.mapDTOToEntity(request);
+		
+		
+		/* ----------------------------------------
+		 * -------------- Created by --------------
+		 * ----------------------------------------
+		 */
+		registration.setCreatedBy(SecurityContextHolder.getContext().getAuthentication().getName());
 		
 		/* ----------------------------------------
 		 * -------------- School year -------------
@@ -165,5 +174,13 @@ public class RegistrationService {
 				.totalElements(registrations.getTotalElements())
 				.registrations(repository.findBySchoolYear(schoolYear, PageRequest.of(page, size).withSort(Sort.by(Direction.fromString(sortDirection), sortBy))).stream().map(RegistrationMapper::mapEntityToDTO).toList())
 				.build();
+	}
+	
+	public boolean isOwner(String registrationId, String userId) {
+		try {
+			return findById(registrationId).getCreatedBy().equals(userId);
+		} catch (EntityNotFoundException e) {
+			return false;
+		}
 	}
 }

@@ -1,6 +1,7 @@
 package fr.aredli.easorms.registration.controller;
 
 import com.github.javafaker.Faker;
+import fr.aredli.easorms.registration.IntegrationTest;
 import fr.aredli.easorms.registration.dto.RegistrationCustomFieldDTO;
 import fr.aredli.easorms.registration.dto.RegistrationDTO.RegistrationPageResponse;
 import fr.aredli.easorms.registration.dto.RegistrationDTO.RegistrationRequest.RegistrationCreateRequest;
@@ -19,65 +20,22 @@ import fr.aredli.easorms.registration.repository.SchoolYearRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
+import static fr.aredli.easorms.registration.util.RegistrationUtilTest.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-public class RegistrationControllerTest extends DatabaseIntegrationTest {
+public class RegistrationControllerTest extends IntegrationTest {
 	@Autowired
 	private RegistrationRepository registrationRepository;
 	@Autowired
 	private SchoolYearRepository schoolYearRepository;
 	@Autowired
 	private CustomFieldRepository customFieldRepository;
-	
-	private Registration createRegistration() {
-		Faker faker = new Faker();
-		Registration registration = new Registration();
-		
-		registration.setLastName(faker.name().lastName());
-		registration.setFirstName(faker.name().firstName());
-		registration.setEmail(faker.internet().emailAddress());
-		registration.setPhone(faker.phoneNumber().phoneNumber());
-		registration.setStreetAddress(faker.address().streetAddress());
-		registration.setZipCode(faker.address().zipCode());
-		registration.setCity(faker.address().city());
-		registration.setCountry(faker.address().country());
-		registration.setCreatedBy("test");
-		
-		return registrationRepository.save(registration);
-	}
-	
-	private Registration createRegistration(SchoolYear schoolYear) {
-		Registration registration = createRegistration();
-		registration.setSchoolYear(schoolYear);
-		
-		return registrationRepository.save(registration);
-	}
-	
-	private SchoolYear createCurrentSchoolYear(int year) {
-		SchoolYear schoolYear = new SchoolYear();
-		schoolYear.setStartDate(LocalDate.of(year, 9, 1));
-		schoolYear.setEndDate(LocalDate.of(year + 1, 7, 6));
-		schoolYear.setCurrent(true);
-		
-		return schoolYearRepository.save(schoolYear);
-	}
-	
-	private CustomField createCustomField(String name, Type type) {
-		CustomField customField = new CustomField();
-		customField.setName(name);
-		customField.setType(type);
-		
-		return customFieldRepository.save(customField);
-	}
 	
 	@AfterEach
 	void tearDown() {
@@ -88,11 +46,11 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldGetPageOfAllRegistration() {
-		Registration firstRegistration = createRegistration();
-		Registration secondRegistration = createRegistration();
-		Registration thirdRegistration = createRegistration();
+		Registration firstRegistration = createRegistration(registrationRepository, KEYCLOAK_CONTAINER_ADMIN_USERID);
+		Registration secondRegistration = createRegistration(registrationRepository, KEYCLOAK_CONTAINER_ADMIN_USERID);
+		Registration thirdRegistration = createRegistration(registrationRepository, KEYCLOAK_CONTAINER_ADMIN_USERID);
 		
-		ResponseEntity<RegistrationPageResponse> pageResponse = restTemplate.getForEntity("/registration?page=0&size=10&sortBy=createdAt&sortDirection=asc", RegistrationPageResponse.class);
+		ResponseEntity<RegistrationPageResponse> pageResponse = getWithAdminAuth("/registration?page=0&size=10&sortBy=createdAt&sortDirection=asc", RegistrationPageResponse.class);
 		
 		assertEquals(200, pageResponse.getStatusCode().value());
 		assertNotNull(pageResponse.getBody());
@@ -107,9 +65,9 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldGetCorrectRegistration() {
-		Registration registration = createRegistration();
+		Registration registration = createRegistration(registrationRepository, KEYCLOAK_CONTAINER_ADMIN_USERID);
 		
-		ResponseEntity<RegistrationResponse> registrationResponse = restTemplate.getForEntity("/registration/" + registration.getId(), RegistrationResponse.class);
+		ResponseEntity<RegistrationResponse> registrationResponse = getWithAdminAuth("/registration/" + registration.getId(), RegistrationResponse.class);
 		
 		assertEquals(200, registrationResponse.getStatusCode().value());
 		assertNotNull(registrationResponse.getBody());
@@ -129,7 +87,7 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldThrowExceptionIfTheValueIsNotPresent() {
-		ResponseEntity<ErrorHandler> response = restTemplate.getForEntity("/registration/1", ErrorHandler.class);
+		ResponseEntity<ErrorHandler> response = getWithAdminAuth("/registration/1", ErrorHandler.class);
 		
 		assertEquals(404, response.getStatusCode().value());
 		assertNotNull(response.getBody());
@@ -142,7 +100,7 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldCreateRegistration() {
-		createCurrentSchoolYear(2000);
+		createCurrentSchoolYear(schoolYearRepository, 2000);
 		
 		RegistrationCreateRequest registrationCreateRequest = new RegistrationCreateRequest();
 		Faker faker = new Faker();
@@ -156,7 +114,7 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 		registrationCreateRequest.setCity(faker.address().city());
 		registrationCreateRequest.setCountry(faker.address().country());
 		
-		ResponseEntity<RegistrationResponse> registrationResponse = restTemplate.postForEntity("/registration", registrationCreateRequest, RegistrationResponse.class);
+		ResponseEntity<RegistrationResponse> registrationResponse = postWithAdminAuth("/registration", registrationCreateRequest, RegistrationResponse.class);
 		
 		assertEquals(201, registrationResponse.getStatusCode().value());
 		assertNotNull(registrationResponse.getBody());
@@ -169,7 +127,7 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 		assertEquals(registrationCreateRequest.getZipCode(), registrationResponse.getBody().getZipCode());
 		assertEquals(registrationCreateRequest.getCity(), registrationResponse.getBody().getCity());
 		assertEquals(registrationCreateRequest.getCountry(), registrationResponse.getBody().getCountry());
-		// TODO with auth: assertNotNull(registrationResponse.getBody().getCreatedBy());
+		assertEquals(KEYCLOAK_CONTAINER_ADMIN_USERID, registrationResponse.getBody().getCreatedBy());
 		assertNotNull(registrationResponse.getBody().getCreatedAt());
 		assertNotNull(registrationResponse.getBody().getUpdatedAt());
 		
@@ -190,7 +148,7 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldUpdateAnExistingRegistration() {
-		Registration registration = createRegistration();
+		Registration registration = createRegistration(registrationRepository, KEYCLOAK_CONTAINER_ADMIN_USERID);
 		RegistrationUpdateRequest registrationUpdateRequest = new RegistrationUpdateRequest();
 		Faker faker = new Faker();
 		
@@ -203,7 +161,7 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 		registrationUpdateRequest.setCity(faker.address().city());
 		registrationUpdateRequest.setCountry(faker.address().country());
 		
-		ResponseEntity<RegistrationResponse> registrationResponse = restTemplate.exchange("/registration/" + registration.getId(), HttpMethod.PUT, new HttpEntity<>(registrationUpdateRequest), RegistrationResponse.class);
+		ResponseEntity<RegistrationResponse> registrationResponse = putWithAdminAuth("/registration/" + registration.getId(), registrationUpdateRequest, RegistrationResponse.class);
 		
 		assertEquals(200, registrationResponse.getStatusCode().value());
 		assertNotNull(registrationResponse.getBody());
@@ -237,9 +195,9 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldDeleteCorrectRegistration() {
-		Registration registration = createRegistration();
+		Registration registration = createRegistration(registrationRepository, KEYCLOAK_CONTAINER_ADMIN_USERID);
 		
-		ResponseEntity<Void> registrationResponse = restTemplate.exchange("/registration/" + registration.getId(), HttpMethod.DELETE, null, Void.class);
+		ResponseEntity<Void> registrationResponse = deleteWithAdminAuth("/registration/" + registration.getId(), Void.class);
 		
 		assertEquals(204, registrationResponse.getStatusCode().value());
 		assertEquals(0, registrationRepository.count());
@@ -248,10 +206,10 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 	@Test
 	void shouldDeleteAllRegistration() {
 		for (int i = 0; i < 10; i++) {
-			createRegistration();
+			createRegistration(registrationRepository, KEYCLOAK_CONTAINER_ADMIN_USERID);
 		}
 		
-		ResponseEntity<Void> registrationResponse = restTemplate.exchange("/registration", HttpMethod.DELETE, null, Void.class);
+		ResponseEntity<Void> registrationResponse = deleteWithAdminAuth("/registration", Void.class);
 		
 		assertEquals(204, registrationResponse.getStatusCode().value());
 		assertEquals(0, registrationRepository.count());
@@ -259,11 +217,11 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldCreateAPendingRegistrationWhenCreateANewRegistration() {
-		createCurrentSchoolYear(2000);
+		createCurrentSchoolYear(schoolYearRepository, 2000);
 		
 		RegistrationCreateRequest registrationCreateRequest = new RegistrationCreateRequest();
 		
-		ResponseEntity<RegistrationResponse> registrationResponse = restTemplate.postForEntity("/registration", registrationCreateRequest, RegistrationResponse.class);
+		ResponseEntity<RegistrationResponse> registrationResponse = postWithAdminAuth("/registration", registrationCreateRequest, RegistrationResponse.class);
 		
 		assertEquals(201, registrationResponse.getStatusCode().value());
 		assertNotNull(registrationResponse.getBody());
@@ -272,13 +230,13 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldNotUpdateRegistrationStatusWhenUpdate() {
-		Registration registration = createRegistration();
+		Registration registration = createRegistration(registrationRepository, KEYCLOAK_CONTAINER_ADMIN_USERID);
 		registration.setStatus(Status.REJECTED);
 		registrationRepository.save(registration);
 		
 		RegistrationUpdateRequest registrationUpdateRequest = new RegistrationUpdateRequest();
 		
-		ResponseEntity<RegistrationResponse> registrationResponse = restTemplate.exchange("/registration/" + registration.getId(), HttpMethod.PUT, new HttpEntity<>(registrationUpdateRequest), RegistrationResponse.class);
+		ResponseEntity<RegistrationResponse> registrationResponse = putWithAdminAuth("/registration/" + registration.getId(), registrationUpdateRequest, RegistrationResponse.class);
 		
 		assertEquals(200, registrationResponse.getStatusCode().value());
 		assertNotNull(registrationResponse.getBody());
@@ -291,9 +249,9 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldApproveExistingRegistration() {
-		Registration registration = createRegistration();
+		Registration registration = createRegistration(registrationRepository, KEYCLOAK_CONTAINER_ADMIN_USERID);
 		
-		ResponseEntity<RegistrationResponse> registrationResponse = restTemplate.postForEntity("/registration/" + registration.getId() + "/approve", null, RegistrationResponse.class);
+		ResponseEntity<RegistrationResponse> registrationResponse = postWithAdminAuth("/registration/" + registration.getId() + "/approve", null, RegistrationResponse.class);
 		
 		assertEquals(200, registrationResponse.getStatusCode().value());
 		assertNotNull(registrationResponse.getBody());
@@ -306,9 +264,9 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldRejectExistingRegistration() {
-		Registration registration = createRegistration();
+		Registration registration = createRegistration(registrationRepository, KEYCLOAK_CONTAINER_ADMIN_USERID);
 		
-		ResponseEntity<RegistrationResponse> registrationResponse = restTemplate.postForEntity("/registration/" + registration.getId() + "/reject", null, RegistrationResponse.class);
+		ResponseEntity<RegistrationResponse> registrationResponse = postWithAdminAuth("/registration/" + registration.getId() + "/reject", null, RegistrationResponse.class);
 		
 		assertEquals(200, registrationResponse.getStatusCode().value());
 		assertNotNull(registrationResponse.getBody());
@@ -321,21 +279,21 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldGetPageOfAllRegistrationByStatus() {
-		Registration firstRegistration = createRegistration();
-		Registration secondRegistration = createRegistration();
-		Registration thirdRegistration = createRegistration();
+		Registration firstRegistration = createRegistration(registrationRepository, KEYCLOAK_CONTAINER_ADMIN_USERID);
+		Registration secondRegistration = createRegistration(registrationRepository, KEYCLOAK_CONTAINER_ADMIN_USERID);
+		Registration thirdRegistration = createRegistration(registrationRepository, KEYCLOAK_CONTAINER_ADMIN_USERID);
 		
-		ResponseEntity<RegistrationPageResponse> pageResponse = restTemplate.getForEntity("/registration/status/" + Status.PENDING, RegistrationPageResponse.class);
+		ResponseEntity<RegistrationPageResponse> pageResponse = getWithAdminAuth("/registration/status/" + Status.PENDING, RegistrationPageResponse.class);
 		
 		assertEquals(200, pageResponse.getStatusCode().value());
 		assertNotNull(pageResponse.getBody());
 		assertEquals(3, pageResponse.getBody().getTotalElements());
 		assertEquals(1, pageResponse.getBody().getTotalPages());
 		
-		restTemplate.postForEntity("/registration/" + firstRegistration.getId() + "/approve", null, RegistrationResponse.class);
-		restTemplate.postForEntity("/registration/" + secondRegistration.getId() + "/reject", null, RegistrationResponse.class);
+		postWithAdminAuth("/registration/" + firstRegistration.getId() + "/approve", null, RegistrationResponse.class);
+		postWithAdminAuth("/registration/" + secondRegistration.getId() + "/reject", null, RegistrationResponse.class);
 		
-		pageResponse = restTemplate.getForEntity("/registration/status/" + Status.PENDING, RegistrationPageResponse.class);
+		pageResponse = getWithAdminAuth("/registration/status/" + Status.PENDING, RegistrationPageResponse.class);
 		
 		assertEquals(200, pageResponse.getStatusCode().value());
 		assertNotNull(pageResponse.getBody());
@@ -345,7 +303,7 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 		assertEquals(1, pageResponse.getBody().getRegistrations().size());
 		assertEquals(thirdRegistration.getId(), pageResponse.getBody().getRegistrations().getFirst().getId());
 		
-		pageResponse = restTemplate.getForEntity("/registration/status/" + Status.APPROVED, RegistrationPageResponse.class);
+		pageResponse = getWithAdminAuth("/registration/status/" + Status.APPROVED, RegistrationPageResponse.class);
 		
 		assertEquals(200, pageResponse.getStatusCode().value());
 		assertNotNull(pageResponse.getBody());
@@ -355,7 +313,7 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 		assertEquals(1, pageResponse.getBody().getRegistrations().size());
 		assertEquals(firstRegistration.getId(), pageResponse.getBody().getRegistrations().getFirst().getId());
 		
-		pageResponse = restTemplate.getForEntity("/registration/status/" + Status.REJECTED, RegistrationPageResponse.class);
+		pageResponse = getWithAdminAuth("/registration/status/" + Status.REJECTED, RegistrationPageResponse.class);
 		
 		assertEquals(200, pageResponse.getStatusCode().value());
 		assertNotNull(pageResponse.getBody());
@@ -368,7 +326,7 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldThrowAndExceptionIfNoAValidStatus() {
-		ResponseEntity<ErrorHandler> response = restTemplate.getForEntity("/registration/status/INVALID", ErrorHandler.class);
+		ResponseEntity<ErrorHandler> response = getWithAdminAuth("/registration/status/INVALID", ErrorHandler.class);
 		
 		assertEquals(400, response.getStatusCode().value());
 		assertNotNull(response.getBody());
@@ -381,11 +339,11 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldGetRegistrationPageOfCurrentSchoolYear() {
-		SchoolYear schoolYear = createCurrentSchoolYear(2000);
-		Registration firstRegistration = createRegistration(schoolYear);
-		Registration secondRegistration = createRegistration(schoolYear);
+		SchoolYear schoolYear = createCurrentSchoolYear(schoolYearRepository, 2000);
+		Registration firstRegistration = createRegistration(registrationRepository, KEYCLOAK_CONTAINER_ADMIN_USERID, schoolYear);
+		Registration secondRegistration = createRegistration(registrationRepository, KEYCLOAK_CONTAINER_ADMIN_USERID, schoolYear);
 		
-		ResponseEntity<RegistrationPageResponse> pageResponse = restTemplate.getForEntity("/registration/school-year/current", RegistrationPageResponse.class);
+		ResponseEntity<RegistrationPageResponse> pageResponse = getWithAdminAuth("/registration/school-year/current", RegistrationPageResponse.class);
 		
 		assertEquals(200, pageResponse.getStatusCode().value());
 		assertNotNull(pageResponse.getBody());
@@ -398,10 +356,10 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 		
 		schoolYear.setCurrent(false);
 		schoolYearRepository.save(schoolYear);
-		schoolYear = createCurrentSchoolYear(2002);
-		Registration thirdRegistration = createRegistration(schoolYear);
+		schoolYear = createCurrentSchoolYear(schoolYearRepository, 2002);
+		Registration thirdRegistration = createRegistration(registrationRepository, KEYCLOAK_CONTAINER_ADMIN_USERID, schoolYear);
 		
-		pageResponse = restTemplate.getForEntity("/registration/school-year/current", RegistrationPageResponse.class);
+		pageResponse = getWithAdminAuth("/registration/school-year/current", RegistrationPageResponse.class);
 		
 		assertEquals(200, pageResponse.getStatusCode().value());
 		assertNotNull(pageResponse.getBody());
@@ -416,7 +374,7 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 	void shouldThrowExceptionWhenCreatingRegistrationWithoutCurrentSchoolYear() {
 		RegistrationCreateRequest registrationCreateRequest = new RegistrationCreateRequest();
 		
-		ResponseEntity<ErrorHandler> response = restTemplate.postForEntity("/registration", registrationCreateRequest, ErrorHandler.class);
+		ResponseEntity<ErrorHandler> response = postWithAdminAuth("/registration", registrationCreateRequest, ErrorHandler.class);
 		
 		assertEquals(400, response.getStatusCode().value());
 		assertNotNull(response.getBody());
@@ -429,9 +387,9 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldCreateRegistrationWithCustomField() {
-		createCurrentSchoolYear(2000);
-		createCustomField("customField", Type.TEXT);
-		createCustomField("customField2", Type.BOOLEAN);
+		createCurrentSchoolYear(schoolYearRepository, 2000);
+		createCustomField(customFieldRepository, "customField", Type.TEXT);
+		createCustomField(customFieldRepository, "customField2", Type.BOOLEAN);
 		
 		
 		List<RegistrationCustomFieldDTO> customFieldDTOS = new ArrayList<>();
@@ -447,7 +405,7 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 		RegistrationCreateRequest registrationCreateRequest = new RegistrationCreateRequest();
 		registrationCreateRequest.setCustomFields(customFieldDTOS);
 		
-		ResponseEntity<RegistrationResponse> registrationResponse = restTemplate.postForEntity("/registration", registrationCreateRequest, RegistrationResponse.class);
+		ResponseEntity<RegistrationResponse> registrationResponse = postWithAdminAuth("/registration", registrationCreateRequest, RegistrationResponse.class);
 		
 		assertEquals(201, registrationResponse.getStatusCode().value());
 		assertNotNull(registrationResponse.getBody());
@@ -460,9 +418,9 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldThrowErrorIfAllCustomFieldAreNotFill() {
-		createCurrentSchoolYear(2000);
-		createCustomField("customField", Type.TEXT);
-		createCustomField("customField2", Type.BOOLEAN);
+		createCurrentSchoolYear(schoolYearRepository, 2000);
+		createCustomField(customFieldRepository, "customField", Type.TEXT);
+		createCustomField(customFieldRepository, "customField2", Type.BOOLEAN);
 		
 		List<RegistrationCustomFieldDTO> customFieldDTOS = new ArrayList<>();
 		RegistrationCustomFieldDTO customFieldDTO = new RegistrationCustomFieldDTO();
@@ -473,7 +431,7 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 		RegistrationCreateRequest registrationCreateRequest = new RegistrationCreateRequest();
 		registrationCreateRequest.setCustomFields(customFieldDTOS);
 		
-		ResponseEntity<ErrorHandler> response = restTemplate.postForEntity("/registration", registrationCreateRequest, ErrorHandler.class);
+		ResponseEntity<ErrorHandler> response = postWithAdminAuth("/registration", registrationCreateRequest, ErrorHandler.class);
 		
 		assertEquals(400, response.getStatusCode().value());
 		assertNotNull(response.getBody());
@@ -486,9 +444,9 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldThrowErrorIfCustomFieldValueDontMatchWithType() {
-		createCurrentSchoolYear(2000);
-		createCustomField("customField", Type.TEXT);
-		createCustomField("customField2", Type.BOOLEAN);
+		createCurrentSchoolYear(schoolYearRepository, 2000);
+		createCustomField(customFieldRepository, "customField", Type.TEXT);
+		createCustomField(customFieldRepository, "customField2", Type.BOOLEAN);
 		
 		List<RegistrationCustomFieldDTO> customFieldDTOS = new ArrayList<>();
 		RegistrationCustomFieldDTO customFieldDTO = new RegistrationCustomFieldDTO();
@@ -503,7 +461,7 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 		RegistrationCreateRequest registrationCreateRequest = new RegistrationCreateRequest();
 		registrationCreateRequest.setCustomFields(customFieldDTOS);
 		
-		ResponseEntity<ErrorHandler> response = restTemplate.postForEntity("/registration", registrationCreateRequest, ErrorHandler.class);
+		ResponseEntity<ErrorHandler> response = postWithAdminAuth("/registration", registrationCreateRequest, ErrorHandler.class);
 		
 		assertEquals(400, response.getStatusCode().value());
 		assertNotNull(response.getBody());
@@ -516,9 +474,9 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldThrowErrorIfCustomFieldIsNotFound() {
-		createCurrentSchoolYear(2000);
-		createCustomField("customField", Type.TEXT);
-		createCustomField("customField2", Type.BOOLEAN);
+		createCurrentSchoolYear(schoolYearRepository, 2000);
+		createCustomField(customFieldRepository, "customField", Type.TEXT);
+		createCustomField(customFieldRepository, "customField2", Type.BOOLEAN);
 		
 		List<RegistrationCustomFieldDTO> customFieldDTOS = new ArrayList<>();
 		RegistrationCustomFieldDTO customFieldDTO = new RegistrationCustomFieldDTO();
@@ -533,7 +491,7 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 		RegistrationCreateRequest registrationCreateRequest = new RegistrationCreateRequest();
 		registrationCreateRequest.setCustomFields(customFieldDTOS);
 		
-		ResponseEntity<ErrorHandler> response = restTemplate.postForEntity("/registration", registrationCreateRequest, ErrorHandler.class);
+		ResponseEntity<ErrorHandler> response = postWithAdminAuth("/registration", registrationCreateRequest, ErrorHandler.class);
 		
 		assertEquals(400, response.getStatusCode().value());
 		assertNotNull(response.getBody());
@@ -546,9 +504,9 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldUpdateRegistrationCustomField() {
-		Registration registration = createRegistration();
-		CustomField firstCustomField = createCustomField("customField", Type.TEXT);
-		CustomField secondCustomField = createCustomField("customField2", Type.BOOLEAN);
+		Registration registration = createRegistration(registrationRepository, KEYCLOAK_CONTAINER_ADMIN_USERID);
+		CustomField firstCustomField = createCustomField(customFieldRepository, "customField", Type.TEXT);
+		CustomField secondCustomField = createCustomField(customFieldRepository, "customField2", Type.BOOLEAN);
 		
 		registration.setCustomFields(new ArrayList<>());
 		RegistrationCustomField registrationCustomField = new RegistrationCustomField();
@@ -576,7 +534,7 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 		RegistrationUpdateRequest registrationUpdateRequest = new RegistrationUpdateRequest();
 		registrationUpdateRequest.setCustomFields(customFieldDTOS);
 		
-		ResponseEntity<RegistrationResponse> registrationResponse = restTemplate.exchange("/registration/" + registration.getId(), HttpMethod.PUT, new HttpEntity<>(registrationUpdateRequest), RegistrationResponse.class);
+		ResponseEntity<RegistrationResponse> registrationResponse = putWithAdminAuth("/registration/" + registration.getId(), registrationUpdateRequest, RegistrationResponse.class);
 		
 		assertEquals(200, registrationResponse.getStatusCode().value());
 		assertNotNull(registrationResponse.getBody());
@@ -589,9 +547,9 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldThrowExceptionWhenUpdateHaveNoAllCustomField() {
-		Registration registration = createRegistration();
-		CustomField firstCustomField = createCustomField("customField", Type.TEXT);
-		CustomField secondCustomField = createCustomField("customField2", Type.BOOLEAN);
+		Registration registration = createRegistration(registrationRepository, KEYCLOAK_CONTAINER_ADMIN_USERID);
+		CustomField firstCustomField = createCustomField(customFieldRepository, "customField", Type.TEXT);
+		CustomField secondCustomField = createCustomField(customFieldRepository, "customField2", Type.BOOLEAN);
 		
 		registration.setCustomFields(new ArrayList<>());
 		RegistrationCustomField registrationCustomField = new RegistrationCustomField();
@@ -615,7 +573,7 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 		RegistrationUpdateRequest registrationUpdateRequest = new RegistrationUpdateRequest();
 		registrationUpdateRequest.setCustomFields(customFieldDTOS);
 		
-		ResponseEntity<ErrorHandler> response = restTemplate.exchange("/registration/" + registration.getId(), HttpMethod.PUT, new HttpEntity<>(registrationUpdateRequest), ErrorHandler.class);
+		ResponseEntity<ErrorHandler> response = putWithAdminAuth("/registration/" + registration.getId(), registrationUpdateRequest, ErrorHandler.class);
 		
 		assertEquals(400, response.getStatusCode().value());
 		assertNotNull(response.getBody());
@@ -628,9 +586,9 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 	
 	@Test
 	void shouldThrowErrorWhenUpdatedCustomFieldDontMatchWithCustomFieldType() {
-		Registration registration = createRegistration();
-		CustomField firstCustomField = createCustomField("customField", Type.TEXT);
-		CustomField secondCustomField = createCustomField("customField2", Type.BOOLEAN);
+		Registration registration = createRegistration(registrationRepository, KEYCLOAK_CONTAINER_ADMIN_USERID);
+		CustomField firstCustomField = createCustomField(customFieldRepository, "customField", Type.TEXT);
+		CustomField secondCustomField = createCustomField(customFieldRepository, "customField2", Type.BOOLEAN);
 		
 		registration.setCustomFields(new ArrayList<>());
 		RegistrationCustomField registrationCustomField = new RegistrationCustomField();
@@ -658,7 +616,7 @@ public class RegistrationControllerTest extends DatabaseIntegrationTest {
 		RegistrationUpdateRequest registrationUpdateRequest = new RegistrationUpdateRequest();
 		registrationUpdateRequest.setCustomFields(customFieldDTOS);
 		
-		ResponseEntity<ErrorHandler> response = restTemplate.exchange("/registration/" + registration.getId(), HttpMethod.PUT, new HttpEntity<>(registrationUpdateRequest), ErrorHandler.class);
+		ResponseEntity<ErrorHandler> response = putWithAdminAuth("/registration/" + registration.getId(), registrationUpdateRequest, ErrorHandler.class);
 		
 		assertEquals(400, response.getStatusCode().value());
 		assertNotNull(response.getBody());
