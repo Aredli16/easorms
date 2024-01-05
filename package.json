@@ -1,0 +1,17 @@
+{
+  "name": "easorms",
+  "version": "1.0.0-SNAPSHOT",
+  "description": "Easorms is a ORM for postgresql, it's easy to use and has a lot of features.",
+  "repository": "https://github.com/Aredli16/easorms.git",
+  "author": "Lempereur Corentin <73390812+aredli16@users.noreply.github.com>",
+  "private": true,
+  "workspaces": [
+    "front"
+  ],
+  "scripts": {
+    "dev": "yarn stop && docker compose up -d database keycloak discovery gateway registration && yarn workspace front dev",
+    "build": "cd back && chmod 777 mvnw && ./mvnw clean install && cd .. && yarn workspace front build",
+    "start": "docker compose up -d",
+    "stop": "docker compose down"
+  }
+}

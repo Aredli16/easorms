@@ -51,3 +51,6 @@ buildNumber.properties
 *.iml
 out
 gen
+
+### Node template
+node_modules

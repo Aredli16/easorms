@@ -81,6 +81,17 @@ services:
         condition: service_healthy
       database:
         condition: service_healthy
+
+  front:
+    build:
+      context: ./front
+      dockerfile: Dockerfile
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      gateway:
+        condition: service_healthy
 volumes:
   postgres-data:
 
