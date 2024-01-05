@@ -23,13 +23,17 @@ services:
     command: start-dev
     restart: always
     ports:
-      - "9000:8080"
+      - "9000:9000"
     environment:
+      KC_HTTP_PORT: 9000
       KC_DB: postgres
       KC_DB_URL_HOST: database
       KC_SCHEMA: keycloak
       KC_DB_USERNAME: postgres
       KC_DB_PASSWORD: postgres
+    depends_on:
+      database:
+        condition: service_healthy
 
   discovery:
     image: discovery:latest
