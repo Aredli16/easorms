@@ -1,9 +1,24 @@
 import { SchoolYear } from '@/types/school_year';
-import { getSchoolYear } from '@/lib/server/school-year';
+import { createSchoolYear, getSchoolYear } from '@/lib/server/school-year';
 import SchoolYearList from '@/components/admin/SchoolYearList';
+import { revalidatePath } from 'next/cache';
 
 const Page = async () => {
   const schoolYears: SchoolYear[] = await getSchoolYear();
+
+  const handleSubmit = async (formData: FormData) => {
+    'use server';
+
+    const schoolYear: SchoolYear = {
+      startDate: new Date(formData.get('startDate')!.toString()),
+      endDate: new Date(formData.get('endDate')!.toString()),
+      current: formData.get('currentSchoolYear') === 'on',
+    };
+
+    await createSchoolYear(schoolYear);
+
+    revalidatePath('/admin/settings');
+  };
 
   return (
     <div className="divide-y divide-white/5">
@@ -14,7 +29,7 @@ const Page = async () => {
             Configure the current school year. This will be used to determine the current registration period.
           </p>
         </div>
-        <form>
+        <form action={handleSubmit}>
           <h2 className="text-base font-semibold text-white">Create school year</h2>
           <div className="grid grid-cols-2 gap-y-6 sm:grid-cols-2 sm:gap-x-8">
             <div>
@@ -76,7 +91,7 @@ const Page = async () => {
           </div>
         </form>
         <div className="col-start-2 col-span-full">
-          <h2 className="text-base font-semibold text-white">School year</h2>
+          <h2 className="text-base font-semibold text-white">Existing school year</h2>
           <div className="mt-6">
             <SchoolYearList schoolYears={schoolYears} />
           </div>

@@ -1,6 +1,6 @@
 export interface SchoolYear {
-  id: string;
-  startDate: string;
-  endDate: string;
+  id?: string;
+  startDate: Date;
+  endDate: Date;
   current: boolean;
 }

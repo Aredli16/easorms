@@ -48,6 +48,15 @@ public class SchoolYearService {
 	public SchoolYearResponse createSchoolYear(SchoolYearCreateRequest request) {
 		valideSchoolYear(request.getStartDate(), request.getEndDate());
 		
+		if (request.isCurrent()) {
+			SchoolYear currentSchoolYear = schoolYearRepository.findFirstByCurrentTrue().orElse(null);
+			
+			if (currentSchoolYear != null) {
+				currentSchoolYear.setCurrent(false);
+				schoolYearRepository.save(currentSchoolYear);
+			}
+		}
+		
 		return SchoolYearMapper.mapEntityToDTO(schoolYearRepository.save(SchoolYearMapper.mapDTOToEntity(request)));
 	}
 	

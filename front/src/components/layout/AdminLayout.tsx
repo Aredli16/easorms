@@ -6,14 +6,12 @@ import { Dialog, Transition } from '@headlessui/react';
 import { Cog6ToothIcon, FolderIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { Bars3Icon, MagnifyingGlassIcon } from '@heroicons/react/20/solid';
 import { usePathname } from 'next/navigation';
-import { useSession } from 'next-auth/react';
-import Loading from '@/components/Loading';
 import Link from 'next/link';
 import { classNames } from '@/utils/css';
+import { Session } from 'next-auth';
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
+export default function AdminLayout({ children, session }: { children: ReactNode, session: Session }) {
   const pathname = usePathname();
-  const { data: session, status } = useSession();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const navigation = [
@@ -29,9 +27,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const secondaryNavigation = [
     { name: 'Registration', href: '/admin/settings', current: pathname === '/admin/settings' },
   ];
-
-
-  if (status === 'loading') return <Loading />;
 
   return (
     <div>

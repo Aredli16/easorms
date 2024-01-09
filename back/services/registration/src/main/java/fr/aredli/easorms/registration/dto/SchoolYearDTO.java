@@ -23,6 +23,7 @@ public abstract class SchoolYearDTO {
 		@Data
 		@EqualsAndHashCode(callSuper = true)
 		public static class SchoolYearCreateRequest extends SchoolYearRequest {
+			private boolean current;
 		}
 		
 		@Data

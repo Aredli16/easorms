@@ -2,20 +2,30 @@
 
 import { SchoolYear } from '@/types/school_year';
 import { classNames } from '@/utils/css';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { setCurrentSchoolYear } from '@/lib/client/school-year';
 
 
 const SchoolYearList = ({ schoolYears }: { schoolYears: SchoolYear[] }) => {
-  const [current, setCurrent] = useState(schoolYears.find((schoolYear) => schoolYear.current));
+  const [current, setCurrent] = useState<SchoolYear | undefined>(undefined);
 
   const updateCurrent = async (id: string) => {
     setCurrent(undefined);
 
     await setCurrentSchoolYear(id);
 
+    const currentSchoolYear = schoolYears.find((schoolYear) => schoolYear.current);
+
+    if (currentSchoolYear) currentSchoolYear.current = false;
+
+    schoolYears.find((schoolYear) => schoolYear.id === id)!.current = true;
+
     setCurrent(schoolYears.find((schoolYear) => schoolYear.current));
   };
+
+  useEffect(() => {
+    setCurrent(schoolYears.find((schoolYear) => schoolYear.current));
+  }, [schoolYears]);
 
   return (
     <>
@@ -25,10 +35,11 @@ const SchoolYearList = ({ schoolYears }: { schoolYears: SchoolYear[] }) => {
             <div className="flex items-center">
               <button
                 type="button"
-                onClick={async () => updateCurrent(schoolYear.id)}
+                onClick={async () => updateCurrent(schoolYear.id!)}
                 className={classNames(current?.id === schoolYear.id ? 'bg-green-500' : 'bg-gray-500', 'flex-shrink-0 inline-block h-2 w-2 rounded-full')}
               />
-              <span className="ml-3 font-medium text-white">{schoolYear.startDate} - {schoolYear.endDate}</span>
+              <span
+                className="ml-3 font-medium text-white">{schoolYear.startDate.toLocaleString()} - {schoolYear.endDate.toLocaleString()}</span>
             </div>
             <div className="flex items-center">
               <button
