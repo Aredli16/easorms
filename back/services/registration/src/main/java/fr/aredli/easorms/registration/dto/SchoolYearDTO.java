@@ -14,7 +14,7 @@ public abstract class SchoolYearDTO {
 	@EqualsAndHashCode(callSuper = true)
 	public static class SchoolYearResponse extends SchoolYearDTO {
 		private String id;
-		private String current;
+		private boolean current;
 	}
 	
 	@Data

@@ -26,7 +26,19 @@ public class SchoolYearService {
 	}
 	
 	public List<SchoolYearResponse> findAllSchoolYears() {
-		return schoolYearRepository.findAll().stream().map(SchoolYearMapper::mapEntityToDTO).toList();
+		return schoolYearRepository
+				.findAll()
+				.stream()
+				.map(SchoolYearMapper::mapEntityToDTO)
+				.sorted((d1, d2) -> {
+					if (d1.getStartDate().isBefore(d2.getStartDate()))
+						return -1;
+					else if (d1.getStartDate().isAfter(d2.getStartDate()))
+						return 1;
+					else
+						return 0;
+				})
+				.toList();
 	}
 	
 	public SchoolYearResponse findSchoolYearById(String id) {

@@ -1,7 +1,5 @@
 import type { Metadata } from 'next';
-import './globals.css';
 import { ReactNode } from 'react';
-import SessionProviderWrapper from '@/components/layout/SessionProviderWrapper';
 
 export const metadata: Metadata = {
   title: 'Create Next App',
@@ -10,8 +8,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode; }) {
   return (
-    <SessionProviderWrapper>
-      {children}
-    </SessionProviderWrapper>
+    <html lang="fr" className="h-full">
+    <body className="h-full">{children}</body>
+    </html>
   );
 }
