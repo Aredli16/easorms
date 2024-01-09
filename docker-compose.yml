@@ -86,6 +86,14 @@ services:
     build:
       context: ./front
       dockerfile: Dockerfile
+      args:
+        KEYCLOAK_CLIENT_ID: app
+        KEYCLOAK_CLIENT_SECRET: zneGS7KoRkCuy5MwzL5lXC9JipTdsw5a
+        KEYCLOAK_ISSUER: http://keycloak:9000/realms/easorms
+        NEXTAUTH_SECRET: 3d2f2b2c-1b1a-4f5a-8b1a-2b1a1b1a1b1a
+        NEXTAUTH_URL: http://localhost:3000
+        API_URL: http://gateway:8080
+        NEXT_PUBLIC_API_URL: http://localhost:8080
     restart: always
     ports:
       - "3000:3000"

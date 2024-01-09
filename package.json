@@ -10,7 +10,7 @@
   ],
   "scripts": {
     "dev": "yarn stop && docker compose up -d database keycloak discovery gateway registration && yarn workspace front dev",
-    "build": "cd back && chmod 777 mvnw && ./mvnw clean install && cd .. && yarn workspace front build",
+    "build": "cd back && ./mvnw clean install && cd .. && yarn workspace front build",
     "start": "docker compose up -d",
     "stop": "docker compose down"
   }
