@@ -38,9 +38,6 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
-      - name: CHMOD mvnw
-        run: chmod +x back/mvnw
-
       - name: Build
         run: yarn build
 
