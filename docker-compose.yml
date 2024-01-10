@@ -17,15 +17,18 @@ services:
       retries: 10
     volumes:
       - postgres-data:/var/lib/postgresql/data
+      - ./database-init.sql:/docker-entrypoint-initdb.d/init.sql
 
   keycloak:
     image: quay.io/keycloak/keycloak:latest
     command: start-dev
     restart: always
     ports:
-      - "9000:9000"
+      - "8000:8000"
     environment:
-      KC_HTTP_PORT: 9000
+      KC_HTTP_PORT: 8000
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
       KC_DB: postgres
       KC_DB_URL_HOST: database
       KC_SCHEMA: keycloak
@@ -88,8 +91,8 @@ services:
       dockerfile: Dockerfile
       args:
         KEYCLOAK_CLIENT_ID: app
-        KEYCLOAK_CLIENT_SECRET: zneGS7KoRkCuy5MwzL5lXC9JipTdsw5a
-        KEYCLOAK_ISSUER: http://keycloak:9000/realms/easorms
+        KEYCLOAK_CLIENT_SECRET: Bek0xrGv1VfX3yXfxmpT2NKmdGNOQGbk
+        KEYCLOAK_ISSUER: http://keycloak:8000/realms/easorms
         NEXTAUTH_SECRET: 3d2f2b2c-1b1a-4f5a-8b1a-2b1a1b1a1b1a
         NEXTAUTH_URL: http://localhost:3000
         API_URL: http://gateway:8080

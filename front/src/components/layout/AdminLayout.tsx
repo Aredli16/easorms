@@ -1,16 +1,25 @@
 'use client';
 
-
 import { Fragment, ReactNode, useState } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
-import { Cog6ToothIcon, FolderIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import {
+  Cog6ToothIcon,
+  FolderIcon,
+  XMarkIcon,
+} from '@heroicons/react/24/outline';
 import { Bars3Icon, MagnifyingGlassIcon } from '@heroicons/react/20/solid';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { classNames } from '@/utils/css';
 import { Session } from 'next-auth';
 
-export default function AdminLayout({ children, session }: { children: ReactNode, session: Session }) {
+export default function AdminLayout({
+  children,
+  session,
+}: {
+  children: ReactNode;
+  session: Session;
+}) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -21,17 +30,22 @@ export default function AdminLayout({ children, session }: { children: ReactNode
       icon: FolderIcon,
       current: pathname === '/admin/registration',
     },
-    { name: 'Settings', href: '/admin/settings', icon: Cog6ToothIcon, current: pathname === '/admin/settings' },
-  ];
-
-  const secondaryNavigation = [
-    { name: 'Registration', href: '/admin/settings', current: pathname === '/admin/settings' },
+    {
+      name: 'Settings',
+      href: '/admin/settings',
+      icon: Cog6ToothIcon,
+      current: pathname === '/admin/settings',
+    },
   ];
 
   return (
     <div>
       <Transition.Root show={sidebarOpen} as={Fragment}>
-        <Dialog as="div" className="relative z-50 xl:hidden" onClose={setSidebarOpen}>
+        <Dialog
+          as="div"
+          className="relative z-50 xl:hidden"
+          onClose={setSidebarOpen}
+        >
           <Transition.Child
             as={Fragment}
             enter="transition-opacity ease-linear duration-300"
@@ -65,9 +79,16 @@ export default function AdminLayout({ children, session }: { children: ReactNode
                   leaveTo="opacity-0"
                 >
                   <div className="absolute left-full top-0 flex w-16 justify-center pt-5">
-                    <button type="button" className="-m-2.5 p-2.5" onClick={() => setSidebarOpen(false)}>
+                    <button
+                      type="button"
+                      className="-m-2.5 p-2.5"
+                      onClick={() => setSidebarOpen(false)}
+                    >
                       <span className="sr-only">Close sidebar</span>
-                      <XMarkIcon className="h-6 w-6 text-white" aria-hidden="true" />
+                      <XMarkIcon
+                        className="h-6 w-6 text-white"
+                        aria-hidden="true"
+                      />
                     </button>
                   </div>
                 </Transition.Child>
@@ -92,10 +113,13 @@ export default function AdminLayout({ children, session }: { children: ReactNode
                                   item.current
                                     ? 'bg-gray-800 text-white'
                                     : 'text-gray-400 hover:text-white hover:bg-gray-800',
-                                  'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold',
+                                  'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold'
                                 )}
                               >
-                                <item.icon className="h-6 w-6 shrink-0" aria-hidden="true" />
+                                <item.icon
+                                  className="h-6 w-6 shrink-0"
+                                  aria-hidden="true"
+                                />
                                 {item.name}
                               </Link>
                             </li>
@@ -148,10 +172,13 @@ export default function AdminLayout({ children, session }: { children: ReactNode
                           item.current
                             ? 'bg-gray-800 text-white'
                             : 'text-gray-400 hover:text-white hover:bg-gray-800',
-                          'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold',
+                          'group flex gap-x-3 rounded-md p-2 text-sm leading-6 font-semibold'
                         )}
                       >
-                        <item.icon className="h-6 w-6 shrink-0" aria-hidden="true" />
+                        <item.icon
+                          className="h-6 w-6 shrink-0"
+                          aria-hidden="true"
+                        />
                         {item.name}
                       </Link>
                     </li>
@@ -179,9 +206,12 @@ export default function AdminLayout({ children, session }: { children: ReactNode
 
       <div className="xl:pl-72">
         {/* Sticky search header */}
-        <div
-          className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-6 border-b border-white/5 bg-gray-900 px-4 shadow-sm sm:px-6 lg:px-8">
-          <button type="button" className="-m-2.5 p-2.5 text-white xl:hidden" onClick={() => setSidebarOpen(true)}>
+        <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-6 border-b border-white/5 bg-gray-900 px-4 shadow-sm sm:px-6 lg:px-8">
+          <button
+            type="button"
+            className="-m-2.5 p-2.5 text-white xl:hidden"
+            onClick={() => setSidebarOpen(true)}
+          >
             <span className="sr-only">Open sidebar</span>
             <Bars3Icon className="h-5 w-5" aria-hidden="true" />
           </button>
@@ -207,28 +237,7 @@ export default function AdminLayout({ children, session }: { children: ReactNode
             </form>
           </div>
         </div>
-
-        <main>
-          <header className="border-b border-white/5">
-            {/* Secondary navigation */}
-            <nav className="flex overflow-x-auto py-4">
-              <ul
-                role="list"
-                className="flex min-w-full flex-none gap-x-6 px-4 text-sm font-semibold leading-6 text-gray-400 sm:px-6 lg:px-8"
-              >
-                {secondaryNavigation.map((item) => (
-                  <li key={item.name}>
-                    <Link href={item.href} className={item.current ? 'text-indigo-400' : ''}>
-                      {item.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          </header>
-
-          {children}
-        </main>
+        <main>{children}</main>
       </div>
     </div>
   );

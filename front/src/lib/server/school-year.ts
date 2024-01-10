@@ -1,4 +1,4 @@
-import { SchoolYear } from '@/types/school_year';
+import { SchoolYear } from '@/types/school-year';
 import { getAccessToken } from '@/lib/server/access_token';
 
 export const getSchoolYear = async (): Promise<SchoolYear[]> => {
@@ -8,13 +8,14 @@ export const getSchoolYear = async (): Promise<SchoolYear[]> => {
     },
   });
 
-  if (!response.ok)
-    throw response.statusText;
+  if (!response.ok) throw response.statusText;
 
   return await response.json();
 };
 
-export const createSchoolYear = async (schoolYear: SchoolYear): Promise<SchoolYear> => {
+export const createSchoolYear = async (
+  schoolYear: SchoolYear
+): Promise<SchoolYear> => {
   const response = await fetch(`${process.env.API_URL}/school-year`, {
     method: 'POST',
     headers: {
@@ -24,8 +25,7 @@ export const createSchoolYear = async (schoolYear: SchoolYear): Promise<SchoolYe
     body: JSON.stringify(schoolYear),
   });
 
-  if (!response.ok)
-    throw response.statusText;
+  if (!response.ok) throw response.statusText;
 
   return await response.json();
 };
